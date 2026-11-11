@@ -93,6 +93,7 @@ export function promptFor(key) {
     `right pose is the end position (${end}). ` +
     `Working muscles (${muscles}) highlighted in lime green (#c8f031), the rest of the body neutral light grey. ` +
     `Thin dark outlines, plain off-white background, landscape 4:3 composition. ` +
+    `Both poses, including all equipment, fit completely inside the frame with an empty margin on every side; nothing is cut off at the edges and the two poses do not overlap. ` +
     `No text, no labels, no logos, no arrows, no watermark. Anatomically correct, exactly two arms and two legs per figure, ` +
     `equipment drawn realistically and in correct proportion.`
   );
