@@ -1,8 +1,6 @@
 import { guideFor } from '../domain/guides';
+import { ILLUSTRATED } from './illustrated';
 import { MuscleMap } from './MuscleMap';
-
-/** Built-in exercises (id without the `seed-` prefix) that have an illustration in public/exercises. */
-const ILLUSTRATED = new Set(['bench-press', 'incline-bench-press', 'db-bench-press', 'incline-db-press', 'squat']);
 
 /** Illustration (where one exists), muscle map, worked muscles, steps and common mistakes for a built-in exercise. Renders nothing for custom ones. */
 export function ExerciseGuide({ exerciseId, name }: { exerciseId: string; name: string }) {

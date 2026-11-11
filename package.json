@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "illustrations": "node scripts/generate-illustrations.mjs"
   },
   "dependencies": {
     "idb": "^8.0.4",
@@ -19,6 +20,7 @@
     "@types/react": "^18.3.31",
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react": "^4.3.4",
+    "jimp": "^1.6.1",
     "typescript": "^7.0.2",
     "vite": "^5.4.11",
     "vite-plugin-pwa": "^0.21.1",
