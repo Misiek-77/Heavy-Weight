@@ -4,6 +4,7 @@ import { exerciseRecords, finishedWorkouts, progressSeries } from '../domain/sta
 import { useStore } from '../state/store';
 import { Header } from '../ui/Chrome';
 import { ExerciseBrowser, ExerciseForm } from '../ui/ExerciseBrowser';
+import { ExerciseGuide } from '../ui/ExerciseGuide';
 import { formatDay, formatSet, formatWeight, formatWhole } from '../ui/format';
 import { Icon } from '../ui/Icon';
 import { LineChart } from '../ui/LineChart';
@@ -67,6 +68,8 @@ export function ExerciseDetail() {
         {exercise.muscleGroup} · {exercise.equipment}
         {exercise.archived && ' · zarchiwizowane'}
       </p>
+
+      <ExerciseGuide exerciseId={exercise.id} name={exercise.name} />
 
       {recent.length === 0 ? (
         <p className="empty">Nie masz jeszcze zapisanych serii tego ćwiczenia.</p>

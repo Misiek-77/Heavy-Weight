@@ -4,11 +4,13 @@ import type { Workout, WorkoutSet } from '../domain/types';
 import { addEntry, addSet, finishWorkout, removeEntry, removeSet, updateSet } from '../domain/workout';
 import { useRestTimer } from '../state/restTimer';
 import { useStore } from '../state/store';
+import { guideFor } from '../domain/guides';
 import { ExercisePicker } from '../ui/ExerciseBrowser';
+import { ExerciseGuide } from '../ui/ExerciseGuide';
 import { formatClock, formatSet } from '../ui/format';
 import { Icon } from '../ui/Icon';
 import { NumberField } from '../ui/NumberField';
-import { Confirm } from '../ui/Sheet';
+import { Confirm, Sheet } from '../ui/Sheet';
 import type { WorkoutSummary } from './TrainingScreen';
 
 /** Seconds since `startedAt`, refreshed every second. */
@@ -28,6 +30,8 @@ export function ActiveWorkout({ workout, onFinished }: { workout: Workout; onFin
   const rest = useRestTimer();
   const elapsed = useElapsedSeconds(workout.startedAt);
   const [dialog, setDialog] = useState<Dialog>(null);
+  /** Exercise whose how-to sheet is open. */
+  const [guideId, setGuideId] = useState<string | null>(null);
   const history = useMemo(() => store.workouts.filter((w) => w.finishedAt), [store.workouts]);
 
   const save = store.saveWorkout;
@@ -89,7 +93,16 @@ export function ActiveWorkout({ workout, onFinished }: { workout: Workout; onFin
         return (
           <section className="entry" key={entryIndex}>
             <div className="entry-head">
-              <h2>{name}</h2>
+              <h2>
+                {guideFor(entry.exerciseId) ? (
+                  <button type="button" className="entry-name" onClick={() => setGuideId(entry.exerciseId)}>
+                    {name}
+                    <span className="entry-hint">Jak wykonać</span>
+                  </button>
+                ) : (
+                  name
+                )}
+              </h2>
               <button
                 type="button"
                 className="icon-btn"
@@ -168,6 +181,9 @@ export function ActiveWorkout({ workout, onFinished }: { workout: Workout; onFin
         </button>
       </div>
 
+      <Sheet open={guideId !== null} onClose={() => setGuideId(null)} title={guideId ? store.exerciseName(guideId) : ''}>
+        {guideId && <ExerciseGuide exerciseId={guideId} name={store.exerciseName(guideId)} />}
+      </Sheet>
       <ExercisePicker
         open={dialog === 'picker'}
         onClose={() => setDialog(null)}

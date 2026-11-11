@@ -9,7 +9,9 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icon-192.png', 'icon-512.png'],
+      includeAssets: ['icon-192.png', 'icon-512.png', 'exercises/*.jpg'],
+      // Illustrations are precached so the how-to works offline at the gym.
+      workbox: { globPatterns: ['**/*.{js,css,html,png,jpg}'] },
       manifest: {
         name: 'Trening',
         short_name: 'Trening',

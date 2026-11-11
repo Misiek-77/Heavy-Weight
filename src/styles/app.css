@@ -721,3 +721,105 @@ dialog.sheet::backdrop {
     transition: none !important;
   }
 }
+
+/* ---------- exercise guide ---------- */
+
+.guide {
+  margin-top: 24px;
+}
+
+.guide .label {
+  margin-top: 24px;
+}
+
+.guide-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  /* The illustrations have their own off-white paper; keep it from flashing while loading in dark mode. */
+  background: #f7f7f3;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.tag {
+  padding: 5px 12px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.tag.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+
+.steps,
+.mistakes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+}
+
+.steps {
+  counter-reset: step;
+}
+
+.steps li {
+  counter-increment: step;
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  gap: 8px;
+}
+
+.steps li::before {
+  content: counter(step);
+  font-weight: 650;
+  color: var(--muted);
+}
+
+.mistakes li {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  gap: 8px;
+  color: var(--muted);
+}
+
+.mistakes li::before {
+  content: '×';
+  font-weight: 650;
+  color: var(--danger);
+}
+
+.entry-name {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  letter-spacing: inherit;
+  border-radius: 6px;
+}
+
+.entry-hint {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
