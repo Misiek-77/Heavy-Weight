@@ -1,9 +1,10 @@
 import { guideFor } from '../domain/guides';
+import { MuscleMap } from './MuscleMap';
 
 /** Built-in exercises (id without the `seed-` prefix) that have an illustration in public/exercises. */
 const ILLUSTRATED = new Set(['bench-press', 'incline-bench-press', 'db-bench-press', 'incline-db-press', 'squat']);
 
-/** Illustration, worked muscles, steps and common mistakes for a built-in exercise. Renders nothing for custom ones. */
+/** Illustration (where one exists), muscle map, worked muscles, steps and common mistakes for a built-in exercise. Renders nothing for custom ones. */
 export function ExerciseGuide({ exerciseId, name }: { exerciseId: string; name: string }) {
   const guide = guideFor(exerciseId);
   if (!guide) return null;
@@ -23,6 +24,7 @@ export function ExerciseGuide({ exerciseId, name }: { exerciseId: string; name: 
       )}
 
       <h3 className="label">Pracujące mięśnie</h3>
+      <MuscleMap guide={guide} />
       <ul className="tags">
         {guide.primary.map((m) => (
           <li key={m} className="tag primary">

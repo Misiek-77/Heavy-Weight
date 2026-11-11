@@ -823,3 +823,50 @@ dialog.sheet::backdrop {
   text-decoration: underline;
   text-underline-offset: 3px;
 }
+
+/* ---------- muscle map ---------- */
+
+.muscle-map {
+  display: flex;
+  justify-content: center;
+  gap: 28px;
+  margin: 4px 0 16px;
+}
+
+.muscle-map figure {
+  margin: 0;
+  width: 118px;
+  text-align: center;
+}
+
+.muscle-map svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.muscle-map figcaption {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.mm-body {
+  fill: var(--field);
+  stroke: var(--field);
+  stroke-linecap: round;
+}
+
+.mm-muscle {
+  fill: color-mix(in srgb, var(--muted) 20%, var(--field));
+}
+
+.mm-muscle.secondary {
+  fill: color-mix(in srgb, var(--accent) 62%, var(--field));
+}
+
+.mm-muscle.primary {
+  fill: var(--accent);
+  stroke: color-mix(in srgb, var(--accent) 55%, var(--ink));
+  stroke-width: 0.6;
+}
