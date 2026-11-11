@@ -70,7 +70,9 @@ Wszystkie identyfikatory to UUID, daty w ISO 8601, ciężar w kg.
   `entries: WorkoutEntry[]`.
 - **WorkoutEntry**: `exerciseId`, `sets: WorkoutSet[]`.
 - **WorkoutSet**: `weight`, `reps`, `done: boolean`.
-- **Settings**: `theme` (`system` | `light` | `dark`), `restSeconds` (domyślnie 90).
+- **Settings**: `restSeconds` (domyślnie 90). Motyw (`system` | `light` | `dark`) jest ustawieniem
+  urządzenia, nie danych: trzymany w `localStorage`, żeby zastosować go przed pierwszym
+  wyrenderowaniem strony; nie trafia do kopii zapasowej.
 
 Trening bez `finishedAt` to trening aktywny; może istnieć najwyżej jeden.
 Jest zapisywany po każdej zmianie, więc zamknięcie karty lub odświeżenie nie

@@ -112,7 +112,7 @@ function ExerciseFields({ initial, onDone }: { initial?: Exercise; onDone(): voi
     >
       <label className="field">
         <span>Nazwa</span>
-        <input className="input" value={name} onChange={(e) => setName(e.target.value)} autoFocus maxLength={80} />
+        <input className="input" value={name} onChange={(e) => setName(e.target.value)} data-autofocus maxLength={80} />
       </label>
       <label className="field">
         <span>Partia mięśniowa</span>

@@ -86,32 +86,34 @@ export const SEED_EXERCISES: Exercise[] = LIST.map(([id, name, muscleGroup, equi
   updatedAt: SEEDED_AT,
 }));
 
-function plan(id: string, name: string, items: [exercise: string, targetSets: number][]): Plan {
+/** `order` keeps the seeded plans in their intended sequence, since plans are listed oldest first. */
+function plan(order: number, id: string, name: string, items: [exercise: string, targetSets: number][]): Plan {
+  const createdAt = new Date(Date.parse(SEEDED_AT) + order * 1000).toISOString();
   return {
     id: `seed-plan-${id}`,
     name,
     items: items.map(([exercise, targetSets]) => ({ exerciseId: `seed-${exercise}`, targetSets })),
-    createdAt: SEEDED_AT,
-    updatedAt: SEEDED_AT,
+    createdAt,
+    updatedAt: createdAt,
   };
 }
 
 export const SEED_PLANS: Plan[] = [
-  plan('push', 'Push', [
+  plan(0, 'push', 'Push', [
     ['bench-press', 4],
     ['overhead-press', 3],
     ['incline-db-press', 3],
     ['lateral-raise', 3],
     ['triceps-pushdown', 3],
   ]),
-  plan('pull', 'Pull', [
+  plan(1, 'pull', 'Pull', [
     ['deadlift', 3],
     ['pull-up', 3],
     ['barbell-row', 3],
     ['face-pull', 3],
     ['barbell-curl', 3],
   ]),
-  plan('legs', 'Legs', [
+  plan(2, 'legs', 'Legs', [
     ['squat', 4],
     ['romanian-deadlift', 3],
     ['leg-press', 3],

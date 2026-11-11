@@ -41,7 +41,8 @@ export function ExerciseDetail() {
 
   const records = exerciseRecords(store.workouts, id);
   const series = progressSeries(store.workouts, id);
-  const weighted = series.some((p) => p.value > 0);
+  // A trend needs at least two workouts, and bodyweight-only history (all zeros) has nothing to plot.
+  const showChart = series.length >= 2 && series.some((p) => p.value > 0);
   const recent = finishedWorkouts(store.workouts)
     .map((w) => ({ w, sets: w.entries.filter((e) => e.exerciseId === id).flatMap((e) => e.sets) }))
     .filter((x) => x.sets.length > 0)
@@ -71,7 +72,7 @@ export function ExerciseDetail() {
         <p className="empty">Nie masz jeszcze zapisanych serii tego ćwiczenia.</p>
       ) : (
         <>
-          {weighted && (
+          {showChart && (
             <section className="section">
               <h2 className="label">Szacowany maks. na 1 powtórzenie</h2>
               <LineChart points={series} unit="kg" />

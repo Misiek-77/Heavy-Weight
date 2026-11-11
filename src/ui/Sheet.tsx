@@ -18,7 +18,11 @@ export function Sheet({ open, onClose, title, children }: SheetProps) {
   useEffect(() => {
     const dialog = ref.current;
     if (!dialog) return;
-    if (open && !dialog.open) dialog.showModal();
+    if (open && !dialog.open) {
+      dialog.showModal();
+      // React does not emit the `autofocus` attribute, so the dialog's own focus step cannot see it.
+      dialog.querySelector<HTMLElement>('[data-autofocus]')?.focus();
+    }
     if (!open && dialog.open) dialog.close();
   }, [open]);
 
@@ -79,7 +83,7 @@ export function Confirm({ open, onClose, onConfirm, title, message, confirmLabel
       <div className="stack">
         <p className="muted">{message}</p>
         <div className="row-actions">
-          <button type="button" className="btn" autoFocus onClick={onClose}>
+          <button type="button" className="btn" data-autofocus onClick={onClose}>
             {cancelLabel}
           </button>
           <button

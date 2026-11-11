@@ -92,6 +92,7 @@ export function StoreProvider({ repository, children }: { repository: Repository
     const names = new Map(data.exercises.map((e) => [e.id, e.name]));
     return {
       ...data,
+      plans: [...data.plans].sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
       ...actions,
       error,
       activeWorkout: data.workouts.find((w) => !w.finishedAt),

@@ -23,7 +23,7 @@ export function SettingsScreen() {
   const fileInput = useRef<HTMLInputElement>(null);
 
   const themes: { value: Theme; label: string }[] = [
-    { value: 'system', label: `System (obecnie ${systemDark ? 'ciemny' : 'jasny'})` },
+    { value: 'system', label: 'System' },
     { value: 'light', label: 'Jasny' },
     { value: 'dark', label: 'Ciemny' },
   ];
@@ -87,6 +87,11 @@ export function SettingsScreen() {
             </button>
           ))}
         </div>
+        {theme === 'system' && (
+          <p className="muted small" style={{ marginTop: 8 }}>
+            Zgodnie z ustawieniem urządzenia, obecnie {systemDark ? 'ciemny' : 'jasny'}.
+          </p>
+        )}
       </section>
 
       <section className="section">
