@@ -7,6 +7,7 @@ import { useStore } from '../state/store';
 import { guideFor } from '../domain/guides';
 import { ExercisePicker } from '../ui/ExerciseBrowser';
 import { ExerciseGuide } from '../ui/ExerciseGuide';
+import { ExerciseThumb } from '../ui/ExerciseThumb';
 import { formatClock, formatSet } from '../ui/format';
 import { Icon } from '../ui/Icon';
 import { NumberField } from '../ui/NumberField';
@@ -96,8 +97,11 @@ export function ActiveWorkout({ workout, onFinished }: { workout: Workout; onFin
               <h2>
                 {guideFor(entry.exerciseId) ? (
                   <button type="button" className="entry-name" onClick={() => setGuideId(entry.exerciseId)}>
-                    {name}
-                    <span className="entry-hint">Jak wykonać</span>
+                    <ExerciseThumb exerciseId={entry.exerciseId} large />
+                    <span>
+                      {name}
+                      <span className="entry-hint">Jak wykonać</span>
+                    </span>
                   </button>
                 ) : (
                   name

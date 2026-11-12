@@ -806,7 +806,9 @@ dialog.sheet::backdrop {
 }
 
 .entry-name {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 12px;
   width: 100%;
   text-align: left;
   font: inherit;
@@ -869,4 +871,27 @@ dialog.sheet::backdrop {
   fill: var(--accent);
   stroke: color-mix(in srgb, var(--accent) 55%, var(--ink));
   stroke-width: 0.6;
+}
+
+/* ---------- exercise thumbnails ---------- */
+
+.thumb {
+  flex: none;
+  display: block;
+  width: 76px;
+  height: auto;
+  aspect-ratio: 960 / 717;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  /* Same paper colour as the illustrations, so tiles do not flash while loading in dark mode. */
+  background: #f7f7f3;
+}
+
+.thumb-large {
+  width: 104px;
+}
+
+span.thumb {
+  background: var(--line);
 }

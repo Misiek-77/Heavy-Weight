@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { newId } from '../domain/id';
 import { EQUIPMENT, MUSCLE_GROUPS, type Exercise, type MuscleGroup } from '../domain/types';
 import { useStore } from '../state/store';
+import { ExerciseThumb } from './ExerciseThumb';
 import { searchKey } from './format';
 import { Icon } from './Icon';
 import { Sheet } from './Sheet';
@@ -48,6 +49,7 @@ export function ExerciseBrowser({ onSelect }: { onSelect(exercise: Exercise): vo
           {visible.map((e) => (
             <li key={e.id}>
               <button type="button" className="item" onClick={() => onSelect(e)}>
+                <ExerciseThumb exerciseId={e.id} />
                 <span className="item-main">
                   <span className="item-title">{e.name}</span>
                   <span className="item-sub" style={{ display: 'block' }}>
