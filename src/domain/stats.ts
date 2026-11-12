@@ -22,8 +22,12 @@ function workingSetsFor(w: Workout, exerciseId: string): WorkoutSet[] {
 const volume = (sets: WorkoutSet[]) => sets.reduce((sum, s) => sum + s.weight * s.reps, 0);
 const best1RM = (sets: WorkoutSet[]) => Math.max(0, ...sets.map((s) => epley1RM(s.weight, s.reps)));
 
-export function workoutVolume(w: Workout): number {
-  return volume(w.entries.flatMap((e) => doneSets(e.sets)));
+type Ids = ReadonlySet<string>;
+const NONE: Ids = new Set();
+
+/** Kilograms moved. Timed exercises are left out: their sets count seconds, not repetitions. */
+export function workoutVolume(w: Workout, timedIds: Ids = NONE): number {
+  return volume(w.entries.filter((e) => !timedIds.has(e.exerciseId)).flatMap((e) => doneSets(e.sets)));
 }
 
 /** Finished workouts, newest first. */
@@ -44,10 +48,12 @@ export interface ExerciseRecords {
   maxWeight: { weight: number; reps: number; date: string } | null;
   best1RM: { value: number; date: string } | null;
   maxVolume: { value: number; date: string } | null;
+  /** Most repetitions in one set; for timed exercises, the longest hold in seconds. */
+  longest: { reps: number; weight: number; date: string } | null;
 }
 
 export function exerciseRecords(workouts: Workout[], exerciseId: string): ExerciseRecords {
-  const r: ExerciseRecords = { maxWeight: null, best1RM: null, maxVolume: null };
+  const r: ExerciseRecords = { maxWeight: null, best1RM: null, maxVolume: null, longest: null };
   // Oldest first, so the earliest date wins a tie.
   for (const w of finishedWorkouts(workouts).reverse()) {
     const sets = workingSetsFor(w, exerciseId);
@@ -58,6 +64,7 @@ export function exerciseRecords(workouts: Workout[], exerciseId: string): Exerci
       if (!m || s.weight > m.weight || (s.weight === m.weight && s.reps > m.reps)) {
         r.maxWeight = { weight: s.weight, reps: s.reps, date };
       }
+      if (!r.longest || s.reps > r.longest.reps) r.longest = { reps: s.reps, weight: s.weight, date };
     }
     const orm = best1RM(sets);
     if (!r.best1RM || orm > r.best1RM.value) r.best1RM = { value: orm, date };
@@ -67,44 +74,56 @@ export function exerciseRecords(workouts: Workout[], exerciseId: string): Exerci
   return r;
 }
 
-/** Best estimated 1RM per finished workout, oldest first. */
-export function progressSeries(workouts: Workout[], exerciseId: string): { date: string; value: number }[] {
+/** Best estimated 1RM per finished workout (longest hold for a timed exercise), oldest first. */
+export function progressSeries(workouts: Workout[], exerciseId: string, timed = false): { date: string; value: number }[] {
   return finishedWorkouts(workouts)
     .reverse()
     .map((w) => ({ w, sets: workingSetsFor(w, exerciseId) }))
     .filter((x) => x.sets.length)
-    .map((x) => ({ date: x.w.startedAt, value: best1RM(x.sets) }));
+    .map((x) => ({ date: x.w.startedAt, value: timed ? Math.max(...x.sets.map((s) => s.reps)) : best1RM(x.sets) }));
 }
 
 /** Exercises in `workout` whose best estimated 1RM beats everything in `earlier`. */
-export function newRecordExerciseIds(workout: Workout, earlier: Workout[]): string[] {
+export function newRecordExerciseIds(workout: Workout, earlier: Workout[], timedIds: Ids = NONE): string[] {
   const others = earlier.filter((w) => w.id !== workout.id);
   const ids = [...new Set(workout.entries.map((e) => e.exerciseId))];
   return ids.filter((id) => {
+    if (timedIds.has(id)) {
+      const longest = Math.max(0, ...workingSetsFor(workout, id).map((s) => s.reps));
+      return longest > (exerciseRecords(others, id).longest?.reps ?? 0);
+    }
     const now = best1RM(workingSetsFor(workout, id));
     return now > 0 && now > (exerciseRecords(others, id).best1RM?.value ?? 0);
   });
 }
 
-export type LiveRecord = 'weight' | 'oneRepMax';
+export type LiveRecord = 'weight' | 'oneRepMax' | 'time';
 
 /**
  * Whether the set at (entryIndex, setIndex) of the workout in progress beats the lifter's history.
  * Only for exercises done before, so a first session is not one long row of records, and only when
  * the set also beats every other done set of the exercise in this workout. Warm-ups never count.
  */
-export function liveRecord(workout: Workout, entryIndex: number, setIndex: number, history: Workout[]): LiveRecord | null {
+export function liveRecord(
+  workout: Workout,
+  entryIndex: number,
+  setIndex: number,
+  history: Workout[],
+  timed = false,
+): LiveRecord | null {
   const entry = workout.entries[entryIndex];
   const set = entry?.sets[setIndex];
-  if (!entry || !set || set.kind === 'warmup' || set.reps <= 0 || set.weight <= 0) return null;
+  if (!entry || !set || set.kind === 'warmup' || set.reps <= 0) return null;
   const records = exerciseRecords(history.filter((w) => w.id !== workout.id), entry.exerciseId);
-  if (!records.maxWeight || !records.best1RM) return null;
+  if (!records.maxWeight || !records.best1RM || !records.longest) return null;
 
   const others = workout.entries.flatMap((e, i) =>
     e.exerciseId === entry.exerciseId
       ? e.sets.filter((s, j) => s.done && s.kind !== 'warmup' && !(i === entryIndex && j === setIndex))
       : [],
   );
+  if (timed) return set.reps > Math.max(records.longest.reps, ...others.map((s) => s.reps)) ? 'time' : null;
+  if (set.weight <= 0) return null;
   const bestWeight = Math.max(records.maxWeight.weight, ...others.map((s) => s.weight));
   const bestOrm = Math.max(records.best1RM.value, best1RM(others));
   if (set.weight > bestWeight) return 'weight';

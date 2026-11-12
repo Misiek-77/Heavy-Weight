@@ -9,6 +9,7 @@ import { ExerciseThumb } from '../ui/ExerciseThumb';
 import { ExercisePicker } from '../ui/ExerciseBrowser';
 import { plural } from '../ui/format';
 import { Icon } from '../ui/Icon';
+import { NumberField } from '../ui/NumberField';
 import { Confirm } from '../ui/Sheet';
 
 export function PlansScreen() {
@@ -122,7 +123,16 @@ function PlanForm({ existing }: { existing?: Plan }) {
 
   function save() {
     const now = new Date().toISOString();
-    store.savePlan({ id: existing?.id ?? newId(), name: name.trim(), items, createdAt: existing?.createdAt ?? now, updatedAt: now });
+    // Tidy what was typed: a range the right way round, no empty targets, no superset hanging off the last exercise.
+    const clean = items.map(({ repMin, repMax, linkNext, ...item }, i) => {
+      const [low, high] = [repMin, repMax].filter((n): n is number => !!n && n > 0).sort((a, b) => a - b);
+      return {
+        ...item,
+        ...(low ? { repMin: low, repMax: high ?? low } : {}),
+        ...(linkNext && i < items.length - 1 ? { linkNext: true } : {}),
+      };
+    });
+    store.savePlan({ id: existing?.id ?? newId(), name: name.trim(), items: clean, createdAt: existing?.createdAt ?? now, updatedAt: now });
     navigate('/plany');
   }
 
@@ -189,6 +199,12 @@ function PlanForm({ existing }: { existing?: Plan }) {
                         serie
                       </span>
                     </div>
+                    <div className="range" role="group" aria-label={`${exercise}: zakres ${store.timedIds.has(item.exerciseId) ? 'sekund' : 'powtórzeń'}`}>
+                      <NumberField integer label="Od" value={item.repMin ?? 0} onChange={(repMin) => patch(index, { repMin: repMin || undefined })} />
+                      <span aria-hidden="true">–</span>
+                      <NumberField integer label="Do" value={item.repMax ?? 0} onChange={(repMax) => patch(index, { repMax: repMax || undefined })} />
+                      <span className="muted small">{store.timedIds.has(item.exerciseId) ? 's' : 'powt.'}</span>
+                    </div>
                     <span className="spacer" style={{ flex: 1 }} />
                     <button
                       type="button"
@@ -217,6 +233,17 @@ function PlanForm({ existing }: { existing?: Plan }) {
                       <Icon name="close" />
                     </button>
                   </div>
+                  {index < items.length - 1 && (
+                    <button
+                      type="button"
+                      className="link-btn"
+                      style={{ marginBottom: 10 }}
+                      aria-pressed={!!item.linkNext}
+                      onClick={() => patch(index, { linkNext: !item.linkNext })}
+                    >
+                      {item.linkNext ? 'Superset z następnym · rozłącz' : 'Połącz w superset z następnym'}
+                    </button>
+                  )}
                 </li>
               );
             })}

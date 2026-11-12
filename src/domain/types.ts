@@ -20,10 +20,22 @@ export interface Exercise {
   equipment: Equipment;
   custom: boolean;
   archived: boolean;
+  /** Rest after a set of this exercise, when it should differ from the default. */
+  restSeconds?: number;
+  /** Held for time (plank, carries): the set's `reps` then counts seconds. */
+  timed?: boolean;
   updatedAt: string;
 }
 
-export interface PlanItem {
+/** Target repetition range and superset link, shared by plan items and the workout entries made from them. */
+export interface EntryTargets {
+  repMin?: number;
+  repMax?: number;
+  /** Done back to back with the next exercise (a superset); the rest starts only after the last one. */
+  linkNext?: boolean;
+}
+
+export interface PlanItem extends EntryTargets {
   exerciseId: string;
   targetSets: number;
 }
@@ -48,7 +60,7 @@ export interface WorkoutSet {
   kind?: SetKind;
 }
 
-export interface WorkoutEntry {
+export interface WorkoutEntry extends EntryTargets {
   exerciseId: string;
   sets: WorkoutSet[];
   note?: string;

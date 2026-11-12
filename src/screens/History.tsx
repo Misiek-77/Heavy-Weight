@@ -6,7 +6,7 @@ import { useStore } from '../state/store';
 import { Header } from '../ui/Chrome';
 import { ExerciseThumb } from '../ui/ExerciseThumb';
 import { SET_KIND_INFO } from '../ui/setKinds';
-import { formatDay, formatDuration, formatSet, formatWhole, plural } from '../ui/format';
+import { formatDay, formatDuration, formatEntrySet, formatRange, formatWhole, plural } from '../ui/format';
 import { Icon } from '../ui/Icon';
 import { Confirm } from '../ui/Sheet';
 
@@ -14,7 +14,7 @@ const durationOf = (w: Workout) => Date.parse(w.finishedAt ?? w.startedAt) - Dat
 const setCount = (w: Workout) => w.entries.reduce((n, e) => n + e.sets.length, 0);
 
 export function HistoryScreen() {
-  const { workouts } = useStore();
+  const { workouts, timedIds } = useStore();
   const finished = finishedWorkouts(workouts);
   return (
     <main className="screen">
@@ -37,7 +37,7 @@ export function HistoryScreen() {
                   <span className="item-main">
                     <span className="item-title">{w.name}</span>
                     <span className="item-sub" style={{ display: 'block' }}>
-                      {formatDay(w.startedAt)} · {formatDuration(durationOf(w))} · {formatWhole(workoutVolume(w))} kg
+                      {formatDay(w.startedAt)} · {formatDuration(durationOf(w))} · {formatWhole(workoutVolume(w, timedIds))} kg
                     </span>
                   </span>
                   <span className="item-end">
@@ -78,7 +78,7 @@ export function WorkoutDetail() {
         </div>
         <div>
           <div className="stat-value">
-            {formatWhole(workoutVolume(workout))} <small>kg</small>
+            {formatWhole(workoutVolume(workout, store.timedIds))} <small>kg</small>
           </div>
           <div className="stat-label">Objętość</div>
         </div>
@@ -98,12 +98,22 @@ export function WorkoutDetail() {
               {store.exerciseName(entry.exerciseId)}
             </Link>
           </h2>
+          {(entry.repMax || entry.linkNext) && (
+            <p className="entry-target">
+              {[
+                formatRange(entry.repMin, entry.repMax, store.timedIds.has(entry.exerciseId)) && `Cel: ${formatRange(entry.repMin, entry.repMax, store.timedIds.has(entry.exerciseId))}`,
+                entry.linkNext && 'superset z następnym',
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+            </p>
+          )}
           <dl className="set-list">
             {entry.sets.map((set, n) => (
               <div key={n} style={{ display: 'contents' }}>
                 <dt>{n + 1}</dt>
                 <dd>
-                  {formatSet(set.weight, set.reps)}
+                  {formatEntrySet(set, store.timedIds.has(entry.exerciseId))}
                   {set.kind && set.kind !== 'normal' && <span className="kind-tag">{SET_KIND_INFO[set.kind].label}</span>}
                 </dd>
               </div>

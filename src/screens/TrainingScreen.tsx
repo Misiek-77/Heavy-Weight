@@ -83,7 +83,7 @@ export function TrainingScreen() {
 }
 
 function Summary({ summary, onClose }: { summary: WorkoutSummary; onClose(): void }) {
-  const { exerciseName } = useStore();
+  const { exerciseName, timedIds } = useStore();
   const { workout, recordExerciseIds } = summary;
   const sets = workout.entries.reduce((n, e) => n + e.sets.length, 0);
   const duration = Date.parse(workout.finishedAt ?? workout.startedAt) - Date.parse(workout.startedAt);
@@ -98,7 +98,7 @@ function Summary({ summary, onClose }: { summary: WorkoutSummary; onClose(): voi
         </div>
         <div>
           <div className="stat-value">
-            {formatWhole(workoutVolume(workout))} <small>kg</small>
+            {formatWhole(workoutVolume(workout, timedIds))} <small>kg</small>
           </div>
           <div className="stat-label">Objętość</div>
         </div>

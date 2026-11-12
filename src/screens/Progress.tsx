@@ -21,7 +21,7 @@ export function ProgressScreen() {
   const store = useStore();
   // One "now" per visit keeps every section on the same day even around midnight.
   const now = useMemo(() => new Date(), []);
-  const summary = useMemo(() => summarize(store.workouts, now), [store.workouts, now]);
+  const summary = useMemo(() => summarize(store.workouts, now, store.timedIds), [store.workouts, now, store.timedIds]);
 
   return (
     <main className="screen">

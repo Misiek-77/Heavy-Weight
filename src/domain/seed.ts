@@ -76,6 +76,9 @@ const LIST: [id: string, name: string, muscleGroup: MuscleGroup, equipment: Equi
   ['kettlebell-swing', 'Swing z kettlem', 'inne', 'inne'],
 ];
 
+/** Built-in exercises held for time instead of counted in repetitions. */
+export const TIMED_SEEDS: ReadonlySet<string> = new Set(['seed-plank', 'seed-farmer-walk']);
+
 export const SEED_EXERCISES: Exercise[] = LIST.map(([id, name, muscleGroup, equipment]) => ({
   id: `seed-${id}`,
   name,
@@ -83,6 +86,7 @@ export const SEED_EXERCISES: Exercise[] = LIST.map(([id, name, muscleGroup, equi
   equipment,
   custom: false,
   archived: false,
+  ...(TIMED_SEEDS.has(`seed-${id}`) ? { timed: true } : {}),
   updatedAt: SEEDED_AT,
 }));
 

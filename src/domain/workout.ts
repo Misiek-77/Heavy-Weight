@@ -1,6 +1,6 @@
 import { newId } from './id';
 import { lastPerformance } from './stats';
-import type { Plan, Workout, WorkoutEntry, WorkoutSet } from './types';
+import type { EntryTargets, Plan, Workout, WorkoutEntry, WorkoutSet } from './types';
 
 const now = () => new Date().toISOString();
 const EMPTY_SET: WorkoutSet = { weight: 0, reps: 0, done: false };
@@ -13,6 +13,30 @@ function prefilledSets(previous: WorkoutSet[], count: number): WorkoutSet[] {
     return { weight: src.weight, reps: src.reps, done: false, ...(src.kind && src.kind !== 'normal' ? { kind: src.kind } : {}) };
   });
 }
+
+/** Added to the working sets once the top of the rep range was reached in every one of them. */
+export const WEIGHT_STEP = 2.5;
+
+/** Whether last time's working sets all reached the top of the target range, so it is time to add weight. */
+export function shouldIncrease(previous: WorkoutSet[], repMax: number | undefined): boolean {
+  const working = previous.filter((s) => s.kind !== 'warmup');
+  return repMax !== undefined && working.length > 0 && working.every((s) => s.weight > 0 && s.reps >= repMax);
+}
+
+/** Prefilled sets for an exercise with a rep range: heavier and back at the bottom of the range when earned. */
+function targetSets(previous: WorkoutSet[], count: number, targets: EntryTargets): WorkoutSet[] {
+  const sets = prefilledSets(previous, count);
+  if (!shouldIncrease(previous, targets.repMax)) return sets;
+  return sets.map((s) =>
+    s.kind === 'warmup' ? s : { ...s, weight: s.weight + WEIGHT_STEP, reps: targets.repMin ?? s.reps },
+  );
+}
+
+const targetsOf = ({ repMin, repMax, linkNext }: EntryTargets): EntryTargets => ({
+  ...(repMin ? { repMin } : {}),
+  ...(repMax ? { repMax } : {}),
+  ...(linkNext ? { linkNext } : {}),
+});
 
 function withEntries(w: Workout, entries: WorkoutEntry[]): Workout {
   return { ...w, entries, updatedAt: now() };
@@ -30,9 +54,12 @@ export function createWorkout(opts: { plan?: Plan; name: string; now: string; hi
     name: opts.name,
     startedAt: opts.now,
     updatedAt: opts.now,
-    entries: (plan?.items ?? []).map((item) => ({
+    entries: (plan?.items ?? []).map((item, i, items) => ({
       exerciseId: item.exerciseId,
-      sets: prefilledSets(lastPerformance(history, item.exerciseId), Math.max(1, item.targetSets)),
+      sets: targetSets(lastPerformance(history, item.exerciseId), Math.max(1, item.targetSets), item),
+      ...targetsOf(item),
+      // The last exercise has nothing after it to be paired with.
+      ...(i === items.length - 1 ? { linkNext: undefined } : {}),
     })),
   };
 }
@@ -43,7 +70,39 @@ export function addEntry(w: Workout, exerciseId: string, history: Workout[]): Wo
 }
 
 export function removeEntry(w: Workout, entryIndex: number): Workout {
-  return withEntries(w, w.entries.filter((_, i) => i !== entryIndex));
+  const removed = w.entries[entryIndex];
+  return withEntries(
+    w,
+    w.entries
+      // The exercise before takes over the removed one's link, so a superset never points at nothing.
+      .map((e, i) => (i === entryIndex - 1 && e.linkNext ? { ...e, linkNext: removed?.linkNext } : e))
+      .filter((_, i) => i !== entryIndex),
+  );
+}
+
+/** Pairs the exercise with the one after it into a superset, or splits the pair. */
+export function toggleLink(w: Workout, entryIndex: number): Workout {
+  if (entryIndex >= w.entries.length - 1) return w;
+  return mapEntry(w, entryIndex, (e) => ({ ...e, linkNext: !e.linkNext }));
+}
+
+/**
+ * Swaps the exercise for another one (the machine is taken). Sets already done stay logged under the
+ * original exercise; the remaining ones move to the replacement, prefilled from its own history.
+ */
+export function swapExercise(w: Workout, entryIndex: number, exerciseId: string, history: Workout[]): Workout {
+  const entry = w.entries[entryIndex];
+  if (!entry || entry.exerciseId === exerciseId) return w;
+  const done = entry.sets.filter((s) => s.done);
+  const remaining = Math.max(1, entry.sets.length - done.length);
+  const replacement: WorkoutEntry = {
+    ...targetsOf(entry),
+    exerciseId,
+    sets: targetSets(lastPerformance(history, exerciseId), remaining, entry),
+  };
+  if (done.length === 0) return withEntries(w, w.entries.map((e, i) => (i === entryIndex ? replacement : e)));
+  const kept: WorkoutEntry = { ...entry, sets: done, linkNext: undefined };
+  return withEntries(w, w.entries.flatMap((e, i) => (i === entryIndex ? [kept, replacement] : [e])));
 }
 
 /**

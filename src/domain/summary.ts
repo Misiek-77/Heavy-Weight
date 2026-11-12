@@ -23,9 +23,9 @@ export interface PeriodTotals {
   volume: number;
 }
 
-function totals(workouts: Workout[], from: Date): PeriodTotals {
-  const inPeriod = workouts.filter((w) => startedOn(w) >= from);
-  return { workouts: inPeriod.length, volume: inPeriod.reduce((sum, w) => sum + workoutVolume(w), 0) };
+function totals(workouts: Workout[], from: Date, timedIds: ReadonlySet<string>, to?: Date): PeriodTotals {
+  const inPeriod = workouts.filter((w) => startedOn(w) >= from && (!to || startedOn(w) < to));
+  return { workouts: inPeriod.length, volume: inPeriod.reduce((sum, w) => sum + workoutVolume(w, timedIds), 0) };
 }
 
 export interface Summary {
@@ -36,7 +36,7 @@ export interface Summary {
   weekStreak: number;
 }
 
-export function summarize(workouts: Workout[], now: Date): Summary {
+export function summarize(workouts: Workout[], now: Date, timedIds: ReadonlySet<string> = new Set()): Summary {
   const finished = finishedWorkouts(workouts);
   const weeks = new Set(finished.map((w) => dayKey(startOfWeek(startedOn(w)))));
   let cursor = startOfWeek(now);
@@ -48,9 +48,9 @@ export function summarize(workouts: Workout[], now: Date): Summary {
     cursor = addDays(cursor, -7);
   }
   return {
-    week: totals(finished, startOfWeek(now)),
-    month: totals(finished, startOfMonth(now)),
-    allTime: totals(finished, new Date(0)),
+    week: totals(finished, startOfWeek(now), timedIds),
+    month: totals(finished, startOfMonth(now), timedIds),
+    allTime: totals(finished, new Date(0), timedIds),
     weekStreak,
   };
 }
@@ -92,6 +92,7 @@ export interface MuscleLoad {
 /** Work per muscle group over the last `days` days, in the fixed order of MUSCLE_GROUPS. */
 export function muscleLoad(workouts: Workout[], exercises: Exercise[], now: Date, days: number): MuscleLoad[] {
   const groupOf = new Map(exercises.map((e) => [e.id, e.muscleGroup]));
+  const timed = new Set(exercises.filter((e) => e.timed).map((e) => e.id));
   const from = addDays(now, -days + 1);
   const load = new Map<MuscleGroup, MuscleLoad>(MUSCLE_GROUPS.map((group) => [group, { group, sets: 0, volume: 0 }]));
   for (const w of finishedWorkouts(workouts)) {
@@ -101,7 +102,7 @@ export function muscleLoad(workouts: Workout[], exercises: Exercise[], now: Date
       for (const s of entry.sets) {
         if (!s.done || s.kind === 'warmup') continue;
         item.sets++;
-        item.volume += s.weight * s.reps;
+        if (!timed.has(entry.exerciseId)) item.volume += s.weight * s.reps;
       }
     }
   }

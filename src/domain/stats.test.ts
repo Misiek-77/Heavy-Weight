@@ -65,7 +65,7 @@ describe('history queries', () => {
   });
 
   it('exerciseRecords is empty without history', () => {
-    expect(exerciseRecords(all, 'missing')).toEqual({ maxWeight: null, best1RM: null, maxVolume: null });
+    expect(exerciseRecords(all, 'missing')).toEqual({ maxWeight: null, best1RM: null, maxVolume: null, longest: null });
   });
 
   it('progressSeries is the best 1RM per workout, oldest first', () => {

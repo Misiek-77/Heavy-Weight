@@ -5,7 +5,7 @@ import { useStore } from '../state/store';
 import { Header } from '../ui/Chrome';
 import { ExerciseBrowser, ExerciseForm } from '../ui/ExerciseBrowser';
 import { ExerciseGuide } from '../ui/ExerciseGuide';
-import { formatDay, formatSet, formatWeight, formatWhole } from '../ui/format';
+import { formatClock, formatDay, formatEntrySet, formatWeight, formatWhole } from '../ui/format';
 import { Icon } from '../ui/Icon';
 import { LineChart } from '../ui/LineChart';
 import { Confirm } from '../ui/Sheet';
@@ -41,7 +41,14 @@ export function ExerciseDetail() {
   if (!exercise) return <Navigate to="/cwiczenia" replace />;
 
   const records = exerciseRecords(store.workouts, id);
-  const series = progressSeries(store.workouts, id);
+  const timed = exercise.timed ?? false;
+  const series = progressSeries(store.workouts, id, timed);
+  const REST_STEP = 15;
+  const rest = exercise.restSeconds ?? store.settings.restSeconds;
+  const setRest = (restSeconds: number | undefined) => {
+    const { restSeconds: _old, ...base } = exercise;
+    store.saveExercise({ ...base, ...(restSeconds ? { restSeconds } : {}), updatedAt: new Date().toISOString() });
+  };
   // A trend needs at least two workouts, and bodyweight-only history (all zeros) has nothing to plot.
   const showChart = series.length >= 2 && series.some((p) => p.value > 0);
   const recent = finishedWorkouts(store.workouts)
@@ -71,19 +78,57 @@ export function ExerciseDetail() {
 
       <ExerciseGuide exerciseId={exercise.id} name={exercise.name} />
 
+      {!exercise.archived && (
+        <section className="section">
+          <h2 className="label">Przerwa po serii</h2>
+          <div className="item" style={{ minHeight: 0, padding: 0 }}>
+            <span className="item-main muted small">
+              {exercise.restSeconds ? (
+                <button type="button" className="link-btn" onClick={() => setRest(undefined)}>
+                  Wróć do domyślnej ({formatClock(store.settings.restSeconds)})
+                </button>
+              ) : (
+                'Domyślna z Ustawień. Zmień, jeśli to ćwiczenie wymaga dłuższej lub krótszej.'
+              )}
+            </span>
+            <div className="stepper" role="group" aria-label="Przerwa po serii tego ćwiczenia">
+              <button type="button" className="icon-btn" aria-label="Krótsza przerwa" disabled={rest <= REST_STEP} onClick={() => setRest(rest - REST_STEP)}>
+                <Icon name="minus" />
+              </button>
+              <output>{formatClock(rest)}</output>
+              <button type="button" className="icon-btn" aria-label="Dłuższa przerwa" disabled={rest >= 600} onClick={() => setRest(rest + REST_STEP)}>
+                <Icon name="plus" />
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
       {recent.length === 0 ? (
         <p className="empty">Nie masz jeszcze zapisanych serii tego ćwiczenia.</p>
       ) : (
         <>
           {showChart && (
             <section className="section">
-              <h2 className="label">Szacowany maks. na 1 powtórzenie</h2>
-              <LineChart points={series} unit="kg" />
+              <h2 className="label">{timed ? 'Najdłuższa seria w treningu' : 'Szacowany maks. na 1 powtórzenie'}</h2>
+              <LineChart points={series} unit={timed ? 's' : 'kg'} />
             </section>
           )}
 
           <section className="section">
             <h2 className="label">Rekordy</h2>
+            {timed ? (
+              <div className="stats" style={{ marginTop: 12 }}>
+                <div>
+                  <div className="stat-value">
+                    {records.longest ? records.longest.reps : '—'} <small>s</small>
+                  </div>
+                  <div className="stat-label">Najdłuższa seria</div>
+                </div>
+                <span />
+                <span />
+              </div>
+            ) : (
             <div className="stats" style={{ marginTop: 12 }}>
               <div>
                 <div className="stat-value">
@@ -106,6 +151,7 @@ export function ExerciseDetail() {
                 <div className="stat-label">Objętość w treningu</div>
               </div>
             </div>
+            )}
           </section>
 
           <section className="section">
@@ -117,7 +163,7 @@ export function ExerciseDetail() {
                     <span className="item-main">
                       <span className="item-title">{formatDay(w.startedAt)}</span>
                       <span className="item-sub" style={{ display: 'block' }}>
-                        {sets.map((s) => formatSet(s.weight, s.reps)).join(' · ')}
+                        {sets.map((s) => formatEntrySet(s, timed)).join(' · ')}
                       </span>
                     </span>
                     <span className="item-end">

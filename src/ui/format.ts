@@ -21,6 +21,20 @@ export const formatLongDay = (date: Date) => longDayFormat.format(date);
 /** "80 kg × 8" */
 export const formatSet = (weight: number, reps: number) => `${formatWeight(weight)} kg × ${reps}`;
 
+/** A logged set: "80 kg × 8", or for a timed exercise "45 s" / "40 kg × 45 s". */
+export function formatEntrySet(set: { weight: number; reps: number }, timed = false): string {
+  if (!timed) return formatSet(set.weight, set.reps);
+  return set.weight > 0 ? `${formatWeight(set.weight)} kg × ${set.reps} s` : `${set.reps} s`;
+}
+
+/** Target range: "8–10 powt.", "10 powt.", "30–60 s"; empty when there is no target. */
+export function formatRange(min: number | undefined, max: number | undefined, timed = false): string {
+  const unit = timed ? 's' : 'powt.';
+  if (min && max && min !== max) return `${min}–${max} ${unit}`;
+  const one = max ?? min;
+  return one ? `${one} ${unit}` : '';
+}
+
 /** "45 min" or "1 h 05 min" */
 export function formatDuration(ms: number): string {
   const minutes = Math.max(0, Math.round(ms / 60000));

@@ -30,6 +30,16 @@ const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'obj
 const isText = (v: unknown): v is string => typeof v === 'string' && v.trim().length > 0;
 const isAmount = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v) && v >= 0;
 
+/** Optional rep range and superset link of a plan item or workout entry; anything malformed is dropped. */
+function targets(v: Record<string, unknown>) {
+  const whole = (x: unknown): x is number => Number.isInteger(x) && (x as number) > 0;
+  return {
+    ...(whole(v.repMin) ? { repMin: v.repMin } : {}),
+    ...(whole(v.repMax) ? { repMax: v.repMax } : {}),
+    ...(v.linkNext === true ? { linkNext: true } : {}),
+  };
+}
+
 function exercise(v: unknown): Exercise {
   check(isObject(v) && isText(v.id) && isText(v.name), 'Plik zawiera ćwiczenie bez nazwy lub identyfikatora.');
   check((MUSCLE_GROUPS as readonly unknown[]).includes(v.muscleGroup), `Nieznana partia mięśniowa: ${v.name}.`);
@@ -41,6 +51,8 @@ function exercise(v: unknown): Exercise {
     equipment: v.equipment as Exercise['equipment'],
     custom: v.custom === true,
     archived: v.archived === true,
+    ...(isAmount(v.restSeconds) && v.restSeconds > 0 ? { restSeconds: v.restSeconds } : {}),
+    ...(v.timed === true ? { timed: true } : {}),
     updatedAt: isText(v.updatedAt) ? v.updatedAt : new Date(0).toISOString(),
   };
 }
@@ -56,7 +68,7 @@ function plan(v: unknown): Plan {
         isObject(item) && isText(item.exerciseId) && Number.isInteger(item.targetSets) && (item.targetSets as number) > 0,
         `Plan „${v.name}” ma niepoprawną pozycję.`,
       );
-      return { exerciseId: item.exerciseId, targetSets: item.targetSets as number };
+      return { exerciseId: item.exerciseId, targetSets: item.targetSets as number, ...targets(item) };
     }),
     createdAt,
     updatedAt: isText(v.updatedAt) ? v.updatedAt : createdAt,
@@ -91,7 +103,7 @@ function workout(v: unknown, exerciseIds: Set<string>): Workout {
     entries: v.entries.map((entry) => {
       check(isObject(entry) && isText(entry.exerciseId) && Array.isArray(entry.sets), 'Plik zawiera niepoprawny trening.');
       check(exerciseIds.has(entry.exerciseId), `Trening „${v.name}” odwołuje się do ćwiczenia, którego nie ma w pliku.`);
-      return { exerciseId: entry.exerciseId, sets: entry.sets.map(workoutSet), ...note(entry.note) };
+      return { exerciseId: entry.exerciseId, sets: entry.sets.map(workoutSet), ...note(entry.note), ...targets(entry) };
     }),
     ...note(v.note),
     updatedAt: isText(v.updatedAt) ? v.updatedAt : v.startedAt,

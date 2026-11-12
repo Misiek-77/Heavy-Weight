@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { Repository } from '../data/repository';
-import { SEED_EXERCISES, SEED_PLANS } from '../domain/seed';
+import { SEED_EXERCISES, SEED_PLANS, TIMED_SEEDS } from '../domain/seed';
 import {
   DEFAULT_SETTINGS,
   type AppData,
@@ -18,6 +18,8 @@ export interface Store extends AppData {
   error: string | null;
   dismissError(): void;
   exerciseName(id: string): string;
+  /** Ids of exercises held for time, whose sets count seconds. */
+  timedIds: ReadonlySet<string>;
   saveExercise(exercise: Exercise): void;
   savePlan(plan: Plan): void;
   removePlan(id: string): void;
@@ -56,6 +58,13 @@ export function StoreProvider({ repository, children }: { repository: Repository
         // First run: exercises are never deleted (only archived), so an empty list means a fresh install.
         data = { exercises: SEED_EXERCISES, plans: SEED_PLANS, workouts: [], measurements: [], settings: DEFAULT_SETTINGS };
         await repository.replaceAll(data);
+      }
+      // Installs from before timed exercises existed: mark the built-in ones that are held for time.
+      const untimed = data.exercises.filter((e) => TIMED_SEEDS.has(e.id) && e.timed === undefined);
+      if (untimed.length > 0) {
+        const fixed = untimed.map((e) => ({ ...e, timed: true }));
+        await Promise.all(fixed.map((e) => repository.putExercise(e)));
+        data = { ...data, exercises: data.exercises.map((e) => fixed.find((x) => x.id === e.id) ?? e) };
       }
       if (!cancelled) setState({ status: 'ready', data });
     })().catch(() => {
@@ -114,6 +123,7 @@ export function StoreProvider({ repository, children }: { repository: Repository
       error,
       activeWorkout: data.workouts.find((w) => !w.finishedAt),
       exerciseName: (id) => names.get(id) ?? 'Usunięte ćwiczenie',
+      timedIds: new Set(data.exercises.filter((e) => e.timed).map((e) => e.id)),
     };
   }, [data, actions, error]);
 

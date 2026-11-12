@@ -1,20 +1,33 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
+import { guideFor } from '../domain/guides';
 import { lastPerformance, liveRecord, newRecordExerciseIds } from '../domain/stats';
 import { SET_KINDS, type Workout, type WorkoutSet } from '../domain/types';
-import { addEntry, addSet, finishWorkout, removeEntry, removeSet, setEntryNote, updateSet } from '../domain/workout';
+import {
+  WEIGHT_STEP,
+  addEntry,
+  addSet,
+  finishWorkout,
+  removeEntry,
+  removeSet,
+  setEntryNote,
+  shouldIncrease,
+  swapExercise,
+  toggleLink,
+  updateSet,
+} from '../domain/workout';
 import { useRestTimer } from '../state/restTimer';
 import { useStore } from '../state/store';
-import { guideFor } from '../domain/guides';
 import { ExercisePicker } from '../ui/ExerciseBrowser';
 import { ExerciseGuide } from '../ui/ExerciseGuide';
 import { ExerciseThumb } from '../ui/ExerciseThumb';
-import { formatClock, formatSet } from '../ui/format';
+import { formatClock, formatEntrySet, formatRange, formatWeight } from '../ui/format';
 import { Icon } from '../ui/Icon';
 import { NoteField } from '../ui/NoteField';
 import { NumberField } from '../ui/NumberField';
 import { PlateCalculator } from '../ui/PlateCalculator';
 import { SET_KIND_INFO } from '../ui/setKinds';
 import { Confirm, Sheet } from '../ui/Sheet';
+import { useWakeLock } from '../ui/useWakeLock';
 import type { WorkoutSummary } from './TrainingScreen';
 
 /** Seconds since `startedAt`, refreshed every second. */
@@ -29,10 +42,13 @@ function useElapsedSeconds(startedAt: string): number {
 
 type Dialog = 'picker' | 'finish' | 'empty' | 'cancel' | null;
 
+const RECORD_LABEL = { weight: 'Nowy rekord ciężaru', oneRepMax: 'Nowy rekord siły', time: 'Nowy rekord czasu' };
+
 export function ActiveWorkout({ workout, onFinished }: { workout: Workout; onFinished(summary: WorkoutSummary): void }) {
   const store = useStore();
   const rest = useRestTimer();
   const elapsed = useElapsedSeconds(workout.startedAt);
+  useWakeLock(true);
   const [dialog, setDialog] = useState<Dialog>(null);
   /** Exercise whose how-to sheet is open. */
   const [guideId, setGuideId] = useState<string | null>(null);
@@ -40,10 +56,8 @@ export function ActiveWorkout({ workout, onFinished }: { workout: Workout; onFin
   const [kindTarget, setKindTarget] = useState<{ entryIndex: number; setIndex: number } | null>(null);
   /** Weight the plate calculator opens with, or null while it is closed. */
   const [plates, setPlates] = useState<number | null>(null);
-  const barbellIds = useMemo(
-    () => new Set(store.exercises.filter((e) => e.equipment === 'sztanga').map((e) => e.id)),
-    [store.exercises],
-  );
+  /** Entry being swapped for another exercise. */
+  const [swapIndex, setSwapIndex] = useState<number | null>(null);
   /** Message shown briefly after a record-breaking set. */
   const [record, setRecord] = useState<string | null>(null);
   useEffect(() => {
@@ -51,21 +65,24 @@ export function ActiveWorkout({ workout, onFinished }: { workout: Workout; onFin
     const id = setTimeout(() => setRecord(null), 5000);
     return () => clearTimeout(id);
   }, [record]);
-  const history = useMemo(() => store.workouts.filter((w) => w.finishedAt), [store.workouts]);
 
+  const exercises = useMemo(() => new Map(store.exercises.map((e) => [e.id, e])), [store.exercises]);
+  const history = useMemo(() => store.workouts.filter((w) => w.finishedAt), [store.workouts]);
   const save = store.saveWorkout;
   const hasOpenSets = workout.entries.some((e) => e.sets.some((s) => !s.done));
+  const swapped = swapIndex === null ? undefined : exercises.get(workout.entries[swapIndex]?.exerciseId ?? '');
 
   function toggleDone(entryIndex: number, setIndex: number, set: WorkoutSet) {
     const next = updateSet(workout, entryIndex, setIndex, { done: !set.done });
     save(next);
     if (set.done) return;
-    rest.start(store.settings.restSeconds, store.settings.restSound);
-    const kind = liveRecord(next, entryIndex, setIndex, history);
+    const entry = workout.entries[entryIndex];
+    const exercise = exercises.get(entry.exerciseId);
+    // In a superset the rest comes only after the last exercise of the group.
+    if (!entry.linkNext) rest.start(exercise?.restSeconds ?? store.settings.restSeconds, store.settings.restSound);
+    const kind = liveRecord(next, entryIndex, setIndex, history, exercise?.timed);
     if (kind) {
-      const what = kind === 'weight' ? 'Nowy rekord ciężaru' : 'Nowy rekord siły';
-      const exercise = store.exerciseName(workout.entries[entryIndex].exerciseId);
-      setRecord(`${what}: ${exercise}, ${formatSet(set.weight, set.reps)}`);
+      setRecord(`${RECORD_LABEL[kind]}: ${store.exerciseName(entry.exerciseId)}, ${formatEntrySet(set, exercise?.timed)}`);
     }
   }
 
@@ -75,7 +92,7 @@ export function ActiveWorkout({ workout, onFinished }: { workout: Workout; onFin
       setDialog('empty');
       return;
     }
-    const recordExerciseIds = newRecordExerciseIds(finished, history);
+    const recordExerciseIds = newRecordExerciseIds(finished, history, store.timedIds);
     rest.stop();
     save(finished);
     onFinished({ workout: finished, recordExerciseIds });
@@ -111,7 +128,6 @@ export function ActiveWorkout({ workout, onFinished }: { workout: Workout; onFin
       <p className="clock" role="timer" aria-label="Czas treningu">
         {formatClock(elapsed)}
       </p>
-
       <NoteField
         label="Notatka do treningu"
         placeholder="Notatka do treningu"
@@ -122,111 +138,142 @@ export function ActiveWorkout({ workout, onFinished }: { workout: Workout; onFin
       {workout.entries.length === 0 && <p className="empty">Dodaj pierwsze ćwiczenie, żeby zacząć zapisywać serie.</p>}
 
       {workout.entries.map((entry, entryIndex) => {
+        const exercise = exercises.get(entry.exerciseId);
+        const timed = exercise?.timed ?? false;
         const previous = lastPerformance(history, entry.exerciseId);
         const name = store.exerciseName(entry.exerciseId);
+        const range = formatRange(entry.repMin, entry.repMax, timed);
+        const isLast = entryIndex === workout.entries.length - 1;
         return (
-          <section className="entry" key={entryIndex}>
-            <div className="entry-head">
-              <h2>
-                {guideFor(entry.exerciseId) ? (
-                  <button type="button" className="entry-name" onClick={() => setGuideId(entry.exerciseId)}>
-                    <ExerciseThumb exerciseId={entry.exerciseId} large />
-                    <span>
-                      {name}
-                      <span className="entry-hint">Jak wykonać</span>
-                    </span>
-                  </button>
-                ) : (
-                  name
-                )}
-              </h2>
-              <button
-                type="button"
-                className="icon-btn"
-                aria-label={`Usuń ćwiczenie: ${name}`}
-                onClick={() => save(removeEntry(workout, entryIndex))}
-              >
-                <Icon name="close" />
-              </button>
-            </div>
-            <div className="sets">
-              <div className="sets-head" aria-hidden="true">
-                <span>#</span>
-                <span>Poprzednio</span>
-                <span>kg</span>
-                <span>Powt.</span>
-                <span />
+          <Fragment key={entryIndex}>
+            <section className={entry.linkNext ? 'entry linked' : 'entry'}>
+              <div className="entry-head">
+                <h2>
+                  {guideFor(entry.exerciseId) ? (
+                    <button type="button" className="entry-name" onClick={() => setGuideId(entry.exerciseId)}>
+                      <ExerciseThumb exerciseId={entry.exerciseId} large />
+                      <span>
+                        {name}
+                        <span className="entry-hint">Jak wykonać</span>
+                      </span>
+                    </button>
+                  ) : (
+                    name
+                  )}
+                </h2>
+                <button
+                  type="button"
+                  className="icon-btn"
+                  aria-label={`Usuń ćwiczenie: ${name}`}
+                  onClick={() => save(removeEntry(workout, entryIndex))}
+                >
+                  <Icon name="close" />
+                </button>
               </div>
-              {entry.sets.map((set, setIndex) => {
-                const prev = previous[setIndex];
-                const n = setIndex + 1;
-                return (
-                  <div className={set.done ? 'set-row done' : 'set-row'} key={setIndex}>
-                    <button
-                      type="button"
-                      className={set.kind && set.kind !== 'normal' ? `set-index kind-${set.kind}` : 'set-index'}
-                      aria-label={`${name}, seria ${n}: rodzaj serii, teraz ${SET_KIND_INFO[set.kind ?? 'normal'].label.toLowerCase()}`}
-                      onClick={() => setKindTarget({ entryIndex, setIndex })}
-                    >
-                      {SET_KIND_INFO[set.kind ?? 'normal'].mark || n}
-                    </button>
-                    <span className="set-prev">{prev ? formatSet(prev.weight, prev.reps) : '—'}</span>
-                    <NumberField
-                      label={`${name}, seria ${n}, ciężar w kg`}
-                      value={set.weight}
-                      onChange={(weight) => save(updateSet(workout, entryIndex, setIndex, { weight }))}
-                    />
-                    <NumberField
-                      integer
-                      label={`${name}, seria ${n}, powtórzenia`}
-                      value={set.reps}
-                      onChange={(reps) => save(updateSet(workout, entryIndex, setIndex, { reps }))}
-                    />
-                    <button
-                      type="button"
-                      className="check"
-                      aria-pressed={set.done}
-                      aria-label={`${name}, seria ${n}: zrobiona`}
-                      disabled={!set.done && set.reps === 0}
-                      onClick={() => toggleDone(entryIndex, setIndex, set)}
-                    >
-                      <Icon name="check" />
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-            <NoteField
-              label={`Notatka do ćwiczenia: ${name}`}
-              placeholder="Notatka do ćwiczenia"
-              value={entry.note ?? ''}
-              onChange={(note) => save(setEntryNote(workout, entryIndex, note))}
-            />
-            <div className="entry-foot">
-              <button type="button" className="btn btn-small" onClick={() => save(addSet(workout, entryIndex, history))}>
-                <Icon name="plus" />
-                Seria
-              </button>
-              <button
-                type="button"
-                className="btn btn-small btn-quiet"
-                disabled={entry.sets.length <= 1}
-                onClick={() => save(removeSet(workout, entryIndex, entry.sets.length - 1))}
-              >
-                <Icon name="minus" />
-                Usuń ostatnią
-              </button>
-              {barbellIds.has(entry.exerciseId) && (
+              {range && (
+                <p className="entry-target">
+                  Cel: {range}
+                  {shouldIncrease(previous, entry.repMax) &&
+                    ` · poprzednio górna granica w każdej serii, więc dodano ${formatWeight(WEIGHT_STEP)} kg`}
+                </p>
+              )}
+              <div className="sets">
+                <div className="sets-head" aria-hidden="true">
+                  <span>#</span>
+                  <span>Poprzednio</span>
+                  <span>kg</span>
+                  <span>{timed ? 'Sek.' : 'Powt.'}</span>
+                  <span />
+                </div>
+                {entry.sets.map((set, setIndex) => {
+                  const prev = previous[setIndex];
+                  const n = setIndex + 1;
+                  return (
+                    <div className={set.done ? 'set-row done' : 'set-row'} key={setIndex}>
+                      <button
+                        type="button"
+                        className={set.kind && set.kind !== 'normal' ? `set-index kind-${set.kind}` : 'set-index'}
+                        aria-label={`${name}, seria ${n}: rodzaj serii, teraz ${SET_KIND_INFO[set.kind ?? 'normal'].label.toLowerCase()}`}
+                        onClick={() => setKindTarget({ entryIndex, setIndex })}
+                      >
+                        {SET_KIND_INFO[set.kind ?? 'normal'].mark || n}
+                      </button>
+                      <span className="set-prev">{prev ? formatEntrySet(prev, timed) : '—'}</span>
+                      <NumberField
+                        label={`${name}, seria ${n}, ciężar w kg`}
+                        value={set.weight}
+                        onChange={(weight) => save(updateSet(workout, entryIndex, setIndex, { weight }))}
+                      />
+                      <NumberField
+                        integer
+                        label={`${name}, seria ${n}, ${timed ? 'czas w sekundach' : 'powtórzenia'}`}
+                        value={set.reps}
+                        onChange={(reps) => save(updateSet(workout, entryIndex, setIndex, { reps }))}
+                      />
+                      <button
+                        type="button"
+                        className="check"
+                        aria-pressed={set.done}
+                        aria-label={`${name}, seria ${n}: zrobiona`}
+                        disabled={!set.done && set.reps === 0}
+                        onClick={() => toggleDone(entryIndex, setIndex, set)}
+                      >
+                        <Icon name="check" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+              <NoteField
+                label={`Notatka do ćwiczenia: ${name}`}
+                placeholder="Notatka do ćwiczenia"
+                value={entry.note ?? ''}
+                onChange={(note) => save(setEntryNote(workout, entryIndex, note))}
+              />
+              <div className="entry-foot">
+                <button type="button" className="btn btn-small" onClick={() => save(addSet(workout, entryIndex, history))}>
+                  <Icon name="plus" />
+                  Seria
+                </button>
                 <button
                   type="button"
                   className="btn btn-small btn-quiet"
-                  onClick={() => setPlates((entry.sets.find((s) => !s.done) ?? entry.sets.at(-1))?.weight ?? 0)}
+                  disabled={entry.sets.length <= 1}
+                  onClick={() => save(removeSet(workout, entryIndex, entry.sets.length - 1))}
                 >
-                  Talerze
+                  <Icon name="minus" />
+                  Usuń ostatnią
                 </button>
-              )}
-            </div>
-          </section>
+              </div>
+              <div className="entry-tools">
+                {exercise?.equipment === 'sztanga' && (
+                  <button
+                    type="button"
+                    className="link-btn"
+                    onClick={() => setPlates((entry.sets.find((s) => !s.done) ?? entry.sets.at(-1))?.weight ?? 0)}
+                  >
+                    Talerze
+                  </button>
+                )}
+                <button type="button" className="link-btn" onClick={() => setSwapIndex(entryIndex)}>
+                  Zamień ćwiczenie
+                </button>
+                {!isLast && (
+                  <button
+                    type="button"
+                    className="link-btn"
+                    aria-pressed={!!entry.linkNext}
+                    onClick={() => save(toggleLink(workout, entryIndex))}
+                  >
+                    {entry.linkNext ? 'Rozłącz superset' : 'Superset z następnym'}
+                  </button>
+                )}
+              </div>
+            </section>
+            {entry.linkNext && !isLast && (
+              <p className="superset-link">Superset · bez przerwy, od razu następne ćwiczenie</p>
+            )}
+          </Fragment>
         );
       })}
 
@@ -250,6 +297,13 @@ export function ActiveWorkout({ workout, onFinished }: { workout: Workout; onFin
       </p>
 
       <PlateCalculator open={plates !== null} onClose={() => setPlates(null)} initialWeight={plates ?? 0} />
+      <ExercisePicker
+        open={swapIndex !== null}
+        onClose={() => setSwapIndex(null)}
+        title={swapped ? `Zamień: ${swapped.name}` : 'Zamień ćwiczenie'}
+        filter={swapped ? (e) => e.muscleGroup === swapped.muscleGroup && e.id !== swapped.id : undefined}
+        onPick={(id) => swapIndex !== null && save(swapExercise(workout, swapIndex, id, history))}
+      />
       <Sheet open={kindTarget !== null} onClose={() => setKindTarget(null)} title="Rodzaj serii">
         <ul className="list">
           {SET_KINDS.map((kind) => {

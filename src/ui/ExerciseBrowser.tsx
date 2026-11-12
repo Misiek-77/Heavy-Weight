@@ -10,7 +10,7 @@ import { Sheet } from './Sheet';
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 /** Searchable, filterable list of the exercises that are not archived. */
-export function ExerciseBrowser({ onSelect }: { onSelect(exercise: Exercise): void }) {
+export function ExerciseBrowser({ onSelect, filter }: { onSelect(exercise: Exercise): void; filter?(exercise: Exercise): boolean }) {
   const { exercises } = useStore();
   const [query, setQuery] = useState('');
   const [group, setGroup] = useState<MuscleGroup | null>(null);
@@ -18,9 +18,11 @@ export function ExerciseBrowser({ onSelect }: { onSelect(exercise: Exercise): vo
   const visible = useMemo(() => {
     const key = searchKey(query.trim());
     return exercises
-      .filter((e) => !e.archived && (!group || e.muscleGroup === group) && searchKey(e.name).includes(key))
+      .filter((e) => !e.archived && (!filter || filter(e)) && (!group || e.muscleGroup === group) && searchKey(e.name).includes(key))
       .sort((a, b) => a.name.localeCompare(b.name, 'pl'));
-  }, [exercises, query, group]);
+    // `filter` is recreated by the caller on every render; the list only depends on what it lets through.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [exercises, query, group, !!filter]);
 
   return (
     <>
@@ -67,10 +69,20 @@ export function ExerciseBrowser({ onSelect }: { onSelect(exercise: Exercise): vo
 }
 
 /** Sheet for choosing one exercise, e.g. to add it to a workout or a plan. */
-export function ExercisePicker({ open, onClose, onPick }: { open: boolean; onClose(): void; onPick(id: string): void }) {
+interface PickerProps {
+  open: boolean;
+  onClose(): void;
+  onPick(id: string): void;
+  title?: string;
+  /** Limits the list, e.g. to replacements for one exercise. */
+  filter?(exercise: Exercise): boolean;
+}
+
+export function ExercisePicker({ open, onClose, onPick, title = 'Dodaj ćwiczenie', filter }: PickerProps) {
   return (
-    <Sheet open={open} onClose={onClose} title="Dodaj ćwiczenie">
+    <Sheet open={open} onClose={onClose} title={title}>
       <ExerciseBrowser
+        filter={filter}
         onSelect={(e) => {
           onClose();
           onPick(e.id);
@@ -94,6 +106,7 @@ function ExerciseFields({ initial, onDone }: { initial?: Exercise; onDone(): voi
   const [name, setName] = useState(initial?.name ?? '');
   const [muscleGroup, setMuscleGroup] = useState(initial?.muscleGroup ?? MUSCLE_GROUPS[0]);
   const [equipment, setEquipment] = useState(initial?.equipment ?? EQUIPMENT[0]);
+  const [timed, setTimed] = useState(initial?.timed ?? false);
 
   return (
     <form
@@ -107,6 +120,8 @@ function ExerciseFields({ initial, onDone }: { initial?: Exercise; onDone(): voi
           equipment,
           custom: true,
           archived: false,
+          ...(initial?.restSeconds ? { restSeconds: initial.restSeconds } : {}),
+          ...(timed ? { timed: true } : {}),
           updatedAt: new Date().toISOString(),
         });
         onDone();
@@ -135,6 +150,10 @@ function ExerciseFields({ initial, onDone }: { initial?: Exercise; onDone(): voi
             </option>
           ))}
         </select>
+      </label>
+      <label className="item" style={{ minHeight: 0, padding: 0 }}>
+        <span className="item-main muted small">Na czas — serie liczone w sekundach zamiast w powtórzeniach.</span>
+        <input type="checkbox" className="switch" checked={timed} onChange={(e) => setTimed(e.target.checked)} />
       </label>
       <button type="submit" className="btn btn-primary btn-block" disabled={name.trim() === ''}>
         <Icon name="check" />
