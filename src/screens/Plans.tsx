@@ -4,6 +4,7 @@ import { newId } from '../domain/id';
 import type { Plan, PlanItem } from '../domain/types';
 import { useStore } from '../state/store';
 import { Header } from '../ui/Chrome';
+import { ExerciseThumb } from '../ui/ExerciseThumb';
 import { ExercisePicker } from '../ui/ExerciseBrowser';
 import { plural } from '../ui/format';
 import { Icon } from '../ui/Icon';
@@ -126,7 +127,8 @@ function PlanForm({ existing }: { existing?: Plan }) {
               return (
                 <li key={index}>
                   <div className="item" style={{ flexWrap: 'wrap', rowGap: 4 }}>
-                    <span className="item-main" style={{ flexBasis: '100%' }}>
+                    <span className="item-main thumb-link" style={{ flexBasis: '100%' }}>
+                      <ExerciseThumb exerciseId={item.exerciseId} />
                       <span className="item-title">{exercise}</span>
                     </span>
                     <div className="stepper" role="group" aria-label={`${exercise}: liczba serii`}>

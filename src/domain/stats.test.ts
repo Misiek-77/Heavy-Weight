@@ -3,6 +3,7 @@ import {
   epley1RM,
   exerciseRecords,
   finishedWorkouts,
+  liveRecord,
   lastPerformance,
   newRecordExerciseIds,
   progressSeries,
@@ -92,5 +93,46 @@ describe('newRecordExerciseIds', () => {
   it('counts the first ever weighted result as a record but not a 0 kg one', () => {
     expect(newRecordExerciseIds(workout('w2', '05', [set(60, 5)], true, 'row'), earlier)).toEqual(['row']);
     expect(newRecordExerciseIds(workout('w2', '05', [set(0, 10)], true, 'pullup'), earlier)).toEqual([]);
+  });
+});
+
+describe('warm-up sets', () => {
+  const warmup: WorkoutSet = { weight: 200, reps: 1, done: true, kind: 'warmup' };
+  const history = [workout('a', '01', [warmup, set(100, 5)])];
+
+  it('do not count towards records or progress', () => {
+    expect(exerciseRecords(history, 'bench').maxWeight?.weight).toBe(100);
+    expect(progressSeries(history, 'bench')[0].value).toBeCloseTo(epley1RM(100, 5));
+  });
+  it('still show up as the last performance and in the volume', () => {
+    expect(lastPerformance(history, 'bench')).toHaveLength(2);
+    expect(workoutVolume(history[0])).toBe(700);
+  });
+});
+
+describe('liveRecord', () => {
+  const history = [workout('a', '01', [set(100, 5)])];
+  const active = (sets: WorkoutSet[], exerciseId = 'bench') => workout('now', '09', sets, false, exerciseId);
+
+  it('reports a heavier weight than ever before', () => {
+    expect(liveRecord(active([set(102.5, 1)]), 0, 0, history)).toBe('weight');
+  });
+  it('reports a better estimated max at the same weight', () => {
+    expect(liveRecord(active([set(100, 6)]), 0, 0, history)).toBe('oneRepMax');
+  });
+  it('reports nothing for an equal or worse set', () => {
+    expect(liveRecord(active([set(100, 5)]), 0, 0, history)).toBeNull();
+    expect(liveRecord(active([set(90, 5)]), 0, 0, history)).toBeNull();
+  });
+  it('reports nothing for an exercise never done before', () => {
+    expect(liveRecord(active([set(300, 1)], 'squat'), 0, 0, history)).toBeNull();
+  });
+  it('ignores warm-ups', () => {
+    expect(liveRecord(active([{ ...set(150, 1), kind: 'warmup' }]), 0, 0, history)).toBeNull();
+  });
+  it('compares against sets already done in the same workout', () => {
+    const now = active([set(110, 3), set(105, 3), set(110, 4)]);
+    expect(liveRecord(now, 0, 1, history)).toBeNull();
+    expect(liveRecord(now, 0, 2, history)).toBe('oneRepMax');
   });
 });

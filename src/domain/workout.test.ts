@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { SEED_EXERCISES, SEED_PLANS } from './seed';
 import type { Plan, Workout } from './types';
-import { addEntry, addSet, createWorkout, finishWorkout, removeEntry, removeSet, updateSet } from './workout';
+import { addEntry, addSet, createWorkout, finishWorkout, removeEntry, removeSet, setEntryNote, updateSet } from './workout';
 
 const NOW = '2026-02-01T10:00:00.000Z';
 const LATER = '2026-02-01T11:00:00.000Z';
@@ -74,6 +74,15 @@ describe('editing', () => {
     expect(w.entries[0]).toEqual({ exerciseId: 'bench', sets: [{ weight: 80, reps: 8, done: false }] });
   });
 
+  it('addSet prefills from the same set last time, then from the set above', () => {
+    let w = addEntry(base, 'bench', history);
+    w = addSet(w, 0, history);
+    expect(w.entries[0].sets[1]).toEqual({ weight: 75, reps: 6, done: false });
+    w = updateSet(w, 0, 1, { weight: 77.5, kind: 'drop' });
+    w = addSet(w, 0, history);
+    expect(w.entries[0].sets[2]).toEqual({ weight: 77.5, reps: 6, done: false });
+  });
+
   it('addSet copies the previous set and is not done', () => {
     let w = addEntry(base, 'bench', history);
     w = updateSet(w, 0, 0, { weight: 82.5, reps: 5, done: true });
@@ -101,6 +110,18 @@ describe('finishWorkout', () => {
     expect(done?.finishedAt).toBe(LATER);
     expect(done?.updatedAt).toBe(LATER);
     expect(done?.entries).toEqual([{ exerciseId: 'bench', sets: [{ weight: 80, reps: 8, done: true }] }]);
+  });
+
+  it('keeps trimmed notes and drops blank ones', () => {
+    let w = createWorkout({ plan, name: plan.name, now: NOW, history });
+    w = updateSet(w, 0, 0, { done: true });
+    w = updateSet(w, 1, 0, { reps: 5, done: true });
+    w = setEntryNote(w, 0, '  bolał bark ');
+    w = setEntryNote(w, 1, '   ');
+    const done = finishWorkout({ ...w, note: ' ' }, LATER)!;
+    expect(done.entries[0].note).toBe('bolał bark');
+    expect('note' in done.entries[1]).toBe(false);
+    expect('note' in done).toBe(false);
   });
 
   it('returns null when nothing was done', () => {

@@ -4,6 +4,8 @@ import { finishedWorkouts, workoutVolume } from '../domain/stats';
 import type { Workout } from '../domain/types';
 import { useStore } from '../state/store';
 import { Header } from '../ui/Chrome';
+import { ExerciseThumb } from '../ui/ExerciseThumb';
+import { SET_KIND_INFO } from '../ui/setKinds';
 import { formatDay, formatDuration, formatSet, formatWhole, plural } from '../ui/format';
 import { Icon } from '../ui/Icon';
 import { Confirm } from '../ui/Sheet';
@@ -86,19 +88,28 @@ export function WorkoutDetail() {
         </div>
       </div>
 
+      {workout.note && <p className="note-text">{workout.note}</p>}
+
       {workout.entries.map((entry, i) => (
         <section className="section" key={i}>
           <h2 className="item-title">
-            <Link to={`/cwiczenia/${entry.exerciseId}`}>{store.exerciseName(entry.exerciseId)}</Link>
+            <Link className="thumb-link" to={`/cwiczenia/${entry.exerciseId}`}>
+              <ExerciseThumb exerciseId={entry.exerciseId} />
+              {store.exerciseName(entry.exerciseId)}
+            </Link>
           </h2>
           <dl className="set-list">
             {entry.sets.map((set, n) => (
               <div key={n} style={{ display: 'contents' }}>
                 <dt>{n + 1}</dt>
-                <dd>{formatSet(set.weight, set.reps)}</dd>
+                <dd>
+                  {formatSet(set.weight, set.reps)}
+                  {set.kind && set.kind !== 'normal' && <span className="kind-tag">{SET_KIND_INFO[set.kind].label}</span>}
+                </dd>
               </div>
             ))}
           </dl>
+          {entry.note && <p className="note-text">{entry.note}</p>}
         </section>
       ))}
 

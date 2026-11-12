@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { lastPerformance, newRecordExerciseIds } from '../domain/stats';
-import type { Workout, WorkoutSet } from '../domain/types';
-import { addEntry, addSet, finishWorkout, removeEntry, removeSet, updateSet } from '../domain/workout';
+import { lastPerformance, liveRecord, newRecordExerciseIds } from '../domain/stats';
+import { SET_KINDS, type Workout, type WorkoutSet } from '../domain/types';
+import { addEntry, addSet, finishWorkout, removeEntry, removeSet, setEntryNote, updateSet } from '../domain/workout';
 import { useRestTimer } from '../state/restTimer';
 import { useStore } from '../state/store';
 import { guideFor } from '../domain/guides';
@@ -10,7 +10,9 @@ import { ExerciseGuide } from '../ui/ExerciseGuide';
 import { ExerciseThumb } from '../ui/ExerciseThumb';
 import { formatClock, formatSet } from '../ui/format';
 import { Icon } from '../ui/Icon';
+import { NoteField } from '../ui/NoteField';
 import { NumberField } from '../ui/NumberField';
+import { SET_KIND_INFO } from '../ui/setKinds';
 import { Confirm, Sheet } from '../ui/Sheet';
 import type { WorkoutSummary } from './TrainingScreen';
 
@@ -33,14 +35,31 @@ export function ActiveWorkout({ workout, onFinished }: { workout: Workout; onFin
   const [dialog, setDialog] = useState<Dialog>(null);
   /** Exercise whose how-to sheet is open. */
   const [guideId, setGuideId] = useState<string | null>(null);
+  /** Set whose kind is being chosen. */
+  const [kindTarget, setKindTarget] = useState<{ entryIndex: number; setIndex: number } | null>(null);
+  /** Message shown briefly after a record-breaking set. */
+  const [record, setRecord] = useState<string | null>(null);
+  useEffect(() => {
+    if (!record) return;
+    const id = setTimeout(() => setRecord(null), 5000);
+    return () => clearTimeout(id);
+  }, [record]);
   const history = useMemo(() => store.workouts.filter((w) => w.finishedAt), [store.workouts]);
 
   const save = store.saveWorkout;
   const hasOpenSets = workout.entries.some((e) => e.sets.some((s) => !s.done));
 
   function toggleDone(entryIndex: number, setIndex: number, set: WorkoutSet) {
-    save(updateSet(workout, entryIndex, setIndex, { done: !set.done }));
-    if (!set.done) rest.start(store.settings.restSeconds);
+    const next = updateSet(workout, entryIndex, setIndex, { done: !set.done });
+    save(next);
+    if (set.done) return;
+    rest.start(store.settings.restSeconds, store.settings.restSound);
+    const kind = liveRecord(next, entryIndex, setIndex, history);
+    if (kind) {
+      const what = kind === 'weight' ? 'Nowy rekord ciężaru' : 'Nowy rekord siły';
+      const exercise = store.exerciseName(workout.entries[entryIndex].exerciseId);
+      setRecord(`${what}: ${exercise}, ${formatSet(set.weight, set.reps)}`);
+    }
   }
 
   function finish() {
@@ -86,6 +105,13 @@ export function ActiveWorkout({ workout, onFinished }: { workout: Workout; onFin
         {formatClock(elapsed)}
       </p>
 
+      <NoteField
+        label="Notatka do treningu"
+        placeholder="Notatka do treningu"
+        value={workout.note ?? ''}
+        onChange={(note) => save({ ...workout, note })}
+      />
+
       {workout.entries.length === 0 && <p className="empty">Dodaj pierwsze ćwiczenie, żeby zacząć zapisywać serie.</p>}
 
       {workout.entries.map((entry, entryIndex) => {
@@ -129,7 +155,14 @@ export function ActiveWorkout({ workout, onFinished }: { workout: Workout; onFin
                 const n = setIndex + 1;
                 return (
                   <div className={set.done ? 'set-row done' : 'set-row'} key={setIndex}>
-                    <span className="set-index">{n}</span>
+                    <button
+                      type="button"
+                      className={set.kind && set.kind !== 'normal' ? `set-index kind-${set.kind}` : 'set-index'}
+                      aria-label={`${name}, seria ${n}: rodzaj serii, teraz ${SET_KIND_INFO[set.kind ?? 'normal'].label.toLowerCase()}`}
+                      onClick={() => setKindTarget({ entryIndex, setIndex })}
+                    >
+                      {SET_KIND_INFO[set.kind ?? 'normal'].mark || n}
+                    </button>
                     <span className="set-prev">{prev ? formatSet(prev.weight, prev.reps) : '—'}</span>
                     <NumberField
                       label={`${name}, seria ${n}, ciężar w kg`}
@@ -156,8 +189,14 @@ export function ActiveWorkout({ workout, onFinished }: { workout: Workout; onFin
                 );
               })}
             </div>
+            <NoteField
+              label={`Notatka do ćwiczenia: ${name}`}
+              placeholder="Notatka do ćwiczenia"
+              value={entry.note ?? ''}
+              onChange={(note) => save(setEntryNote(workout, entryIndex, note))}
+            />
             <div className="entry-foot">
-              <button type="button" className="btn btn-small" onClick={() => save(addSet(workout, entryIndex))}>
+              <button type="button" className="btn btn-small" onClick={() => save(addSet(workout, entryIndex, history))}>
                 <Icon name="plus" />
                 Seria
               </button>
@@ -185,6 +224,51 @@ export function ActiveWorkout({ workout, onFinished }: { workout: Workout; onFin
         </button>
       </div>
 
+      <p className="toast" role="status">
+        {record && (
+          <>
+            <Icon name="check" />
+            {record}
+          </>
+        )}
+      </p>
+
+      <Sheet open={kindTarget !== null} onClose={() => setKindTarget(null)} title="Rodzaj serii">
+        <ul className="list">
+          {SET_KINDS.map((kind) => {
+            const current =
+              kindTarget && (workout.entries[kindTarget.entryIndex]?.sets[kindTarget.setIndex]?.kind ?? 'normal');
+            return (
+              <li key={kind}>
+                <button
+                  type="button"
+                  className="item"
+                  aria-pressed={current === kind}
+                  onClick={() => {
+                    if (kindTarget) save(updateSet(workout, kindTarget.entryIndex, kindTarget.setIndex, { kind }));
+                    setKindTarget(null);
+                  }}
+                >
+                  <span className={`set-index kind-${kind}`} aria-hidden="true">
+                    {SET_KIND_INFO[kind].mark || '1'}
+                  </span>
+                  <span className="item-main">
+                    <span className="item-title">{SET_KIND_INFO[kind].label}</span>
+                    <span className="item-sub" style={{ display: 'block' }}>
+                      {SET_KIND_INFO[kind].hint}
+                    </span>
+                  </span>
+                  {current === kind && (
+                    <span className="item-end">
+                      <Icon name="check" />
+                    </span>
+                  )}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </Sheet>
       <Sheet open={guideId !== null} onClose={() => setGuideId(null)} title={guideId ? store.exerciseName(guideId) : ''}>
         {guideId && <ExerciseGuide exerciseId={guideId} name={store.exerciseName(guideId)} />}
       </Sheet>

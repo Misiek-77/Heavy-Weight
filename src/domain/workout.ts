@@ -9,7 +9,8 @@ const EMPTY_SET: WorkoutSet = { weight: 0, reps: 0, done: false };
 function prefilledSets(previous: WorkoutSet[], count: number): WorkoutSet[] {
   return Array.from({ length: count }, (_, i) => {
     const src = previous[Math.min(i, previous.length - 1)];
-    return src ? { weight: src.weight, reps: src.reps, done: false } : { ...EMPTY_SET };
+    if (!src) return { ...EMPTY_SET };
+    return { weight: src.weight, reps: src.reps, done: false, ...(src.kind && src.kind !== 'normal' ? { kind: src.kind } : {}) };
   });
 }
 
@@ -45,8 +46,25 @@ export function removeEntry(w: Workout, entryIndex: number): Workout {
   return withEntries(w, w.entries.filter((_, i) => i !== entryIndex));
 }
 
-export function addSet(w: Workout, entryIndex: number): Workout {
-  return mapEntry(w, entryIndex, (e) => ({ ...e, sets: [...e.sets, ...prefilledSets(e.sets.slice(-1), 1)] }));
+/**
+ * Adds a set prefilled with what was lifted in the same set last time; when last time had fewer sets,
+ * it repeats the set above instead (as a plain working set).
+ */
+export function addSet(w: Workout, entryIndex: number, history: Workout[] = []): Workout {
+  return mapEntry(w, entryIndex, (e) => {
+    const previous = lastPerformance(history, e.exerciseId)[e.sets.length];
+    const above = e.sets.at(-1);
+    const next: WorkoutSet = previous
+      ? prefilledSets([previous], 1)[0]
+      : above
+        ? { weight: above.weight, reps: above.reps, done: false }
+        : { ...EMPTY_SET };
+    return { ...e, sets: [...e.sets, next] };
+  });
+}
+
+export function setEntryNote(w: Workout, entryIndex: number, note: string): Workout {
+  return mapEntry(w, entryIndex, (e) => ({ ...e, note }));
 }
 
 export function updateSet(w: Workout, entryIndex: number, setIndex: number, patch: Partial<WorkoutSet>): Workout {
@@ -60,11 +78,15 @@ export function removeSet(w: Workout, entryIndex: number, setIndex: number): Wor
   return mapEntry(w, entryIndex, (e) => ({ ...e, sets: e.sets.filter((_, i) => i !== setIndex) }));
 }
 
-/** Keeps only done sets. Returns null when there is nothing worth saving. */
+/** The note trimmed, or nothing when it is blank, so empty notes are not stored. */
+const cleanNote = (note: string | undefined) => (note?.trim() ? { note: note.trim() } : {});
+
+/** Keeps only done sets and non-empty notes. Returns null when there is nothing worth saving. */
 export function finishWorkout(w: Workout, finishedAt: string): Workout | null {
   const entries = w.entries
-    .map((e) => ({ ...e, sets: e.sets.filter((s) => s.done) }))
+    .map(({ note, ...e }) => ({ ...e, sets: e.sets.filter((s) => s.done), ...cleanNote(note) }))
     .filter((e) => e.sets.length > 0);
   if (entries.length === 0) return null;
-  return { ...w, entries, finishedAt, updatedAt: finishedAt };
+  const { note, ...rest } = w;
+  return { ...rest, ...cleanNote(note), entries, finishedAt, updatedAt: finishedAt };
 }

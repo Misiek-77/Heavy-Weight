@@ -120,6 +120,15 @@ export function SettingsScreen() {
             </button>
           </div>
         </div>
+        <label className="item" style={{ minHeight: 0, padding: '14px 0 0' }}>
+          <span className="item-main muted small">Sygnał dźwiękowy po zakończeniu przerwy. Telefon dodatkowo zawibruje.</span>
+          <input
+            type="checkbox"
+            className="switch"
+            checked={store.settings.restSound}
+            onChange={(e) => store.saveSettings({ ...store.settings, restSound: e.target.checked })}
+          />
+        </label>
       </section>
 
       <section className="section">

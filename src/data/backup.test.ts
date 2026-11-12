@@ -15,10 +15,20 @@ const data: AppData = {
       startedAt: '2026-02-01T10:00:00.000Z',
       finishedAt: '2026-02-01T11:00:00.000Z',
       updatedAt: '2026-02-01T11:00:00.000Z',
-      entries: [{ exerciseId: SEED_EXERCISES[0].id, sets: [{ weight: 62.5, reps: 8, done: true }] }],
+      note: 'Dobry dzień',
+      entries: [
+        {
+          exerciseId: SEED_EXERCISES[0].id,
+          note: 'Za lekko',
+          sets: [
+            { weight: 40, reps: 10, done: true, kind: 'warmup' },
+            { weight: 62.5, reps: 8, done: true },
+          ],
+        },
+      ],
     },
   ],
-  settings: { restSeconds: 120 },
+  settings: { restSeconds: 120, restSound: false },
 };
 
 /** Serialized backup with one change applied to its parsed form. */

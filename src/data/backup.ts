@@ -1,6 +1,7 @@
 import {
   EQUIPMENT,
   MUSCLE_GROUPS,
+  SET_KINDS,
   type AppData,
   type Exercise,
   type Plan,
@@ -60,12 +61,17 @@ function plan(v: unknown): Plan {
   };
 }
 
+/** A note is optional free text; anything else in its place is dropped. */
+const note = (v: unknown) => (isText(v) ? { note: v.slice(0, 500) } : {});
+
 function workoutSet(v: unknown): WorkoutSet {
   check(
     isObject(v) && isAmount(v.weight) && isAmount(v.reps) && typeof v.done === 'boolean',
     'Plik zawiera serię z niepoprawnym ciężarem lub liczbą powtórzeń.',
   );
-  return { weight: v.weight, reps: v.reps, done: v.done };
+  check(v.kind === undefined || (SET_KINDS as readonly unknown[]).includes(v.kind), 'Plik zawiera serię nieznanego rodzaju.');
+  const kind = v.kind as WorkoutSet['kind'];
+  return { weight: v.weight, reps: v.reps, done: v.done, ...(kind && kind !== 'normal' ? { kind } : {}) };
 }
 
 function workout(v: unknown, exerciseIds: Set<string>): Workout {
@@ -83,8 +89,9 @@ function workout(v: unknown, exerciseIds: Set<string>): Workout {
     entries: v.entries.map((entry) => {
       check(isObject(entry) && isText(entry.exerciseId) && Array.isArray(entry.sets), 'Plik zawiera niepoprawny trening.');
       check(exerciseIds.has(entry.exerciseId), `Trening „${v.name}” odwołuje się do ćwiczenia, którego nie ma w pliku.`);
-      return { exerciseId: entry.exerciseId, sets: entry.sets.map(workoutSet) };
+      return { exerciseId: entry.exerciseId, sets: entry.sets.map(workoutSet), ...note(entry.note) };
     }),
+    ...note(v.note),
     updatedAt: isText(v.updatedAt) ? v.updatedAt : v.startedAt,
   };
 }
@@ -116,7 +123,7 @@ export function parseBackup(text: string): BackupResult {
     check(workouts.filter((w) => !w.finishedAt).length <= 1, 'Plik zawiera więcej niż jeden niezakończony trening.');
     return {
       ok: true,
-      data: { exercises, plans: d.plans.map(plan), workouts, settings: { restSeconds: d.settings.restSeconds } },
+      data: { exercises, plans: d.plans.map(plan), workouts, settings: { restSeconds: d.settings.restSeconds, restSound: d.settings.restSound !== false } },
     };
   } catch (e) {
     if (e instanceof Invalid) return { ok: false, error: e.message };

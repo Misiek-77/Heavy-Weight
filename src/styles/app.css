@@ -895,3 +895,107 @@ dialog.sheet::backdrop {
 span.thumb {
   background: var(--line);
 }
+
+/* ---------- set kinds, notes, record message ---------- */
+
+button.set-index {
+  min-height: var(--tap);
+  border-radius: 8px;
+  font: inherit;
+  font-weight: 600;
+}
+
+.set-index.kind-warmup,
+.set-index.kind-failure,
+.set-index.kind-drop {
+  color: var(--ink);
+  background: var(--field);
+}
+
+.item > .set-index {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--field);
+}
+
+.kind-tag {
+  margin-left: 8px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.note {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 8px 0;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 15px;
+  resize: none;
+  /* Grows with the text where supported; otherwise stays one line and scrolls. */
+  field-sizing: content;
+}
+
+.note::placeholder {
+  color: var(--muted);
+}
+
+.note:focus {
+  outline: none;
+  border-bottom-color: var(--line);
+}
+
+.note-text {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 15px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.thumb-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.toast {
+  position: fixed;
+  /* Sits just above the tab bar and the rest bar, clear of the Finish button. */
+  bottom: calc(var(--tabbar) + env(safe-area-inset-bottom) + var(--rest-space, 0px) + 12px);
+  left: 0;
+  right: 0;
+  width: fit-content;
+  margin-inline: auto;
+  z-index: 30;
+  max-width: min(92vw, 440px);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+  font-size: 15px;
+  box-shadow: 0 6px 24px rgb(0 0 0 / 0.25);
+}
+
+.toast:empty {
+  display: none;
+}
+
+.switch {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  accent-color: var(--accent);
+}

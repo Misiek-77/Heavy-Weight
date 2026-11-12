@@ -36,15 +36,22 @@ export interface Plan {
   updatedAt: string;
 }
 
+/** How a set was performed. Warm-up sets are logged but never count towards records or progress. */
+export const SET_KINDS = ['normal', 'warmup', 'failure', 'drop'] as const;
+export type SetKind = (typeof SET_KINDS)[number];
+
 export interface WorkoutSet {
   weight: number;
   reps: number;
   done: boolean;
+  /** Absent means a normal working set. */
+  kind?: SetKind;
 }
 
 export interface WorkoutEntry {
   exerciseId: string;
   sets: WorkoutSet[];
+  note?: string;
 }
 
 export interface Workout {
@@ -54,14 +61,17 @@ export interface Workout {
   startedAt: string;
   finishedAt?: string;
   entries: WorkoutEntry[];
+  note?: string;
   updatedAt: string;
 }
 
 export interface Settings {
   restSeconds: number;
+  /** Play a short signal when the rest ends. */
+  restSound: boolean;
 }
 
-export const DEFAULT_SETTINGS: Settings = { restSeconds: 90 };
+export const DEFAULT_SETTINGS: Settings = { restSeconds: 90, restSound: true };
 
 export interface AppData {
   exercises: Exercise[];
