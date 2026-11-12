@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { newId } from '../domain/id';
 import { dayKey, monthGrid, muscleLoad, summarize, trainingDays } from '../domain/summary';
 import { MEASURES, type Measure, type Measurement } from '../domain/types';
 import { useStore } from '../state/store';
 import { Header } from '../ui/Chrome';
+import { GoalsSection } from './Goals';
 import { formatDay, formatWeight, formatWhole, plural } from '../ui/format';
 import { Icon } from '../ui/Icon';
 import { LineChart } from '../ui/LineChart';
@@ -51,6 +53,31 @@ export function ProgressScreen() {
         </div>
       </section>
 
+      <section className="section">
+        <ul className="list">
+          {[
+            ['/postepy/rekordy', 'Rekordy', 'Najlepsze wyniki i historia ich bicia'],
+            ['/postepy/porownanie', 'Porównanie miesięcy', 'Ten miesiąc obok poprzedniego'],
+            ['/postepy/zdjecia', 'Zdjęcia sylwetki', 'Dwa zdjęcia obok siebie'],
+          ].map(([to, title, sub]) => (
+            <li key={to}>
+              <Link className="item" to={to}>
+                <span className="item-main">
+                  <span className="item-title">{title}</span>
+                  <span className="item-sub" style={{ display: 'block' }}>
+                    {sub}
+                  </span>
+                </span>
+                <span className="item-end">
+                  <Icon name="forward" />
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <GoalsSection now={now} />
       <Calendar now={now} />
       <MuscleGroups now={now} />
       <BodyMeasurements now={now} />

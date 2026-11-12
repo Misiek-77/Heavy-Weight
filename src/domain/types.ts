@@ -90,6 +90,19 @@ export interface Measurement {
   updatedAt: string;
 }
 
+/** Something to work towards: a weight on one exercise, or a number of workouts every week. */
+export type Goal =
+  | { id: string; kind: 'lift'; exerciseId: string; targetWeight: number }
+  | { id: string; kind: 'frequency'; perWeek: number };
+
+/** A physique photo. Kept only on the device: photos are too large for the backup file. */
+export interface Photo {
+  id: string;
+  /** Local calendar day, "2026-03-09". */
+  date: string;
+  image: Blob;
+}
+
 export interface Settings {
   restSeconds: number;
   /** Play a short signal when the rest ends. */
@@ -103,5 +116,6 @@ export interface AppData {
   plans: Plan[];
   workouts: Workout[];
   measurements: Measurement[];
+  goals: Goal[];
   settings: Settings;
 }

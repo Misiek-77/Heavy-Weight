@@ -4,6 +4,7 @@ import { ExerciseDetail, ExercisesScreen } from './screens/Exercises';
 import { HistoryScreen, WorkoutDetail } from './screens/History';
 import { PlanEditor, PlansScreen } from './screens/Plans';
 import { ProgressScreen } from './screens/Progress';
+import { CompareScreen, PhotosScreen, RecordsScreen } from './screens/ProgressDetails';
 import { SettingsScreen } from './screens/Settings';
 import { TrainingScreen } from './screens/TrainingScreen';
 import { useRestTimer } from './state/restTimer';
@@ -35,6 +36,9 @@ export function App() {
           <Route path="/historia" element={<HistoryScreen />} />
           <Route path="/historia/:id" element={<WorkoutDetail />} />
           <Route path="/postepy" element={<ProgressScreen />} />
+          <Route path="/postepy/rekordy" element={<RecordsScreen />} />
+          <Route path="/postepy/porownanie" element={<CompareScreen />} />
+          <Route path="/postepy/zdjecia" element={<PhotosScreen />} />
           <Route path="/cwiczenia" element={<ExercisesScreen />} />
           <Route path="/cwiczenia/:id" element={<ExerciseDetail />} />
           <Route path="/ustawienia" element={<SettingsScreen />} />

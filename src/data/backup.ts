@@ -5,6 +5,7 @@ import {
   SET_KINDS,
   type AppData,
   type Exercise,
+  type Goal,
   type Measurement,
   type Plan,
   type Workout,
@@ -125,6 +126,17 @@ function measurement(v: unknown): Measurement {
   return { id: v.id, date: v.date, values, updatedAt: isText(v.updatedAt) ? v.updatedAt : new Date(0).toISOString() };
 }
 
+function goal(v: unknown, exerciseIds: Set<string>): Goal {
+  check(isObject(v) && isText(v.id), 'Plik zawiera niepoprawny cel.');
+  if (v.kind === 'lift') {
+    check(isText(v.exerciseId) && exerciseIds.has(v.exerciseId), 'Plik zawiera cel dla ćwiczenia, którego nie ma w pliku.');
+    check(isAmount(v.targetWeight) && v.targetWeight > 0, 'Plik zawiera cel z niepoprawnym ciężarem.');
+    return { id: v.id, kind: 'lift', exerciseId: v.exerciseId, targetWeight: v.targetWeight };
+  }
+  check(v.kind === 'frequency' && Number.isInteger(v.perWeek) && (v.perWeek as number) > 0, 'Plik zawiera niepoprawny cel.');
+  return { id: v.id, kind: 'frequency', perWeek: v.perWeek as number };
+}
+
 /** Validates a backup file. Never throws; on failure the error is a message for the user. */
 export function parseBackup(text: string): BackupResult {
   let file: unknown;
@@ -153,6 +165,8 @@ export function parseBackup(text: string): BackupResult {
     // Backups made before body measurements existed simply have none.
     check(d.measurements === undefined || Array.isArray(d.measurements), 'Plik zawiera niepoprawne pomiary ciała.');
     const measurements = (d.measurements ?? []).map(measurement);
+    check(d.goals === undefined || Array.isArray(d.goals), 'Plik zawiera niepoprawne cele.');
+    const goals = (d.goals ?? []).map((g) => goal(g, ids));
     return {
       ok: true,
       data: {
@@ -160,6 +174,7 @@ export function parseBackup(text: string): BackupResult {
         plans: d.plans.map(plan),
         workouts,
         measurements,
+        goals,
         settings: { restSeconds: d.settings.restSeconds, restSound: d.settings.restSound !== false },
       },
     };

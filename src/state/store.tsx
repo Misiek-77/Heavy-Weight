@@ -5,7 +5,9 @@ import {
   DEFAULT_SETTINGS,
   type AppData,
   type Exercise,
+  type Goal,
   type Measurement,
+  type Photo,
   type Plan,
   type Settings,
   type Workout,
@@ -27,6 +29,10 @@ export interface Store extends AppData {
   removeWorkout(id: string): void;
   saveMeasurement(measurement: Measurement): void;
   removeMeasurement(id: string): void;
+  saveGoal(goal: Goal): void;
+  removeGoal(id: string): void;
+  /** Physique photos, read and written straight from storage rather than held in memory. */
+  photos: { list(): Promise<Photo[]>; save(photo: Photo): Promise<void>; remove(id: string): Promise<void> };
   saveSettings(settings: Settings): void;
   replaceAll(data: AppData): Promise<void>;
 }
@@ -56,7 +62,7 @@ export function StoreProvider({ repository, children }: { repository: Repository
       let data = await repository.loadAll();
       if (data.exercises.length === 0) {
         // First run: exercises are never deleted (only archived), so an empty list means a fresh install.
-        data = { exercises: SEED_EXERCISES, plans: SEED_PLANS, workouts: [], measurements: [], settings: DEFAULT_SETTINGS };
+        data = { exercises: SEED_EXERCISES, plans: SEED_PLANS, workouts: [], measurements: [], goals: [], settings: DEFAULT_SETTINGS };
         await repository.replaceAll(data);
       }
       // Installs from before timed exercises existed: mark the built-in ones that are held for time.
@@ -103,6 +109,14 @@ export function StoreProvider({ repository, children }: { repository: Repository
           (d) => ({ ...d, measurements: d.measurements.filter((m) => m.id !== id) }),
           () => repository.deleteMeasurement(id),
         ),
+      saveGoal: (g: Goal) => commit((d) => ({ ...d, goals: upsert(d.goals, g) }), () => repository.putGoal(g)),
+      removeGoal: (id: string) =>
+        commit((d) => ({ ...d, goals: d.goals.filter((g) => g.id !== id) }), () => repository.deleteGoal(id)),
+      photos: {
+        list: () => repository.listPhotos(),
+        save: (p: Photo) => repository.putPhoto(p),
+        remove: (id: string) => repository.deletePhoto(id),
+      },
       saveSettings: (s: Settings) => commit((d) => ({ ...d, settings: s }), () => repository.putSettings(s)),
       replaceAll: async (data: AppData) => {
         await repository.replaceAll(data);

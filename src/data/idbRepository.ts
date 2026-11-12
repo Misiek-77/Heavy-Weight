@@ -3,7 +3,9 @@ import {
   DEFAULT_SETTINGS,
   type AppData,
   type Exercise,
+  type Goal,
   type Measurement,
+  type Photo,
   type Plan,
   type Settings,
   type Workout,
@@ -15,6 +17,8 @@ interface Schema extends DBSchema {
   plans: { key: string; value: Plan };
   workouts: { key: string; value: Workout };
   measurements: { key: string; value: Measurement };
+  goals: { key: string; value: Goal };
+  photos: { key: string; value: Photo };
   settings: { key: string; value: Settings };
 }
 
@@ -23,7 +27,7 @@ const SETTINGS_KEY = 'settings';
 export function createIdbRepository(): Repository {
   let dbPromise: Promise<IDBPDatabase<Schema>> | undefined;
   const db = () =>
-    (dbPromise ??= openDB<Schema>('trening', 2, {
+    (dbPromise ??= openDB<Schema>('trening', 3, {
       upgrade(database, oldVersion) {
         if (oldVersion < 1) {
           database.createObjectStore('exercises', { keyPath: 'id' });
@@ -33,20 +37,26 @@ export function createIdbRepository(): Repository {
         }
         // Version 2 adds body measurements; everything stored by version 1 stays as it is.
         if (oldVersion < 2) database.createObjectStore('measurements', { keyPath: 'id' });
+        // Version 3 adds goals and physique photos.
+        if (oldVersion < 3) {
+          database.createObjectStore('goals', { keyPath: 'id' });
+          database.createObjectStore('photos', { keyPath: 'id' });
+        }
       },
     }));
 
   return {
     async loadAll() {
       const d = await db();
-      const [exercises, plans, workouts, measurements, settings] = await Promise.all([
+      const [exercises, plans, workouts, measurements, goals, settings] = await Promise.all([
         d.getAll('exercises'),
         d.getAll('plans'),
         d.getAll('workouts'),
         d.getAll('measurements'),
+        d.getAll('goals'),
         d.get('settings', SETTINGS_KEY),
       ]);
-      return { exercises, plans, workouts, measurements, settings: { ...DEFAULT_SETTINGS, ...settings } };
+      return { exercises, plans, workouts, measurements, goals, settings: { ...DEFAULT_SETTINGS, ...settings } };
     },
     async putExercise(exercise) {
       await (await db()).put('exercises', exercise);
@@ -69,25 +79,43 @@ export function createIdbRepository(): Repository {
     async deleteMeasurement(id) {
       await (await db()).delete('measurements', id);
     },
+    async putGoal(goal) {
+      await (await db()).put('goals', goal);
+    },
+    async deleteGoal(id) {
+      await (await db()).delete('goals', id);
+    },
+    async listPhotos() {
+      return (await db()).getAll('photos');
+    },
+    async putPhoto(photo) {
+      await (await db()).put('photos', photo);
+    },
+    async deletePhoto(id) {
+      await (await db()).delete('photos', id);
+    },
     async putSettings(settings) {
       await (await db()).put('settings', settings, SETTINGS_KEY);
     },
     async replaceAll(data: AppData) {
-      const tx = (await db()).transaction(['exercises', 'plans', 'workouts', 'measurements', 'settings'], 'readwrite');
+      const tx = (await db()).transaction(['exercises', 'plans', 'workouts', 'measurements', 'goals', 'settings'], 'readwrite');
       const exercises = tx.objectStore('exercises');
       const plans = tx.objectStore('plans');
       const workouts = tx.objectStore('workouts');
       const measurements = tx.objectStore('measurements');
+      const goals = tx.objectStore('goals');
       const settings = tx.objectStore('settings');
       await Promise.all([
         exercises.clear(),
         plans.clear(),
         workouts.clear(),
         measurements.clear(),
+        goals.clear(),
         ...data.exercises.map((e) => exercises.put(e)),
         ...data.plans.map((p) => plans.put(p)),
         ...data.workouts.map((w) => workouts.put(w)),
         ...data.measurements.map((m) => measurements.put(m)),
+        ...data.goals.map((g) => goals.put(g)),
         settings.put(data.settings, SETTINGS_KEY),
         tx.done,
       ]);

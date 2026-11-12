@@ -29,6 +29,10 @@ const data: AppData = {
     },
   ],
   measurements: [{ id: 'm1', date: '2026-02-01', values: { weight: 82.4, waist: 88 }, updatedAt: '2026-02-01T08:00:00.000Z' }],
+  goals: [
+    { id: 'g1', kind: 'lift', exerciseId: SEED_EXERCISES[0].id, targetWeight: 100 },
+    { id: 'g2', kind: 'frequency', perWeek: 3 },
+  ],
   settings: { restSeconds: 120, restSound: false },
 };
 
