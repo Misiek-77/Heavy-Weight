@@ -1,4 +1,4 @@
-import { formatDay, formatWeight } from './format';
+import { formatDay, formatNumber } from './format';
 
 const W = 320;
 const H = 150;
@@ -18,7 +18,7 @@ export function LineChart({ points, unit }: { points: { date: string; value: num
   const y = (v: number) => PAD.top + (span === 0 ? innerH / 2 : (1 - (v - min) / span) * innerH);
   const path = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(1)} ${y(p.value).toFixed(1)}`).join(' ');
   const last = points.length - 1;
-  const label = `Wykres: od ${formatWeight(points[0].value)} ${unit} (${formatDay(points[0].date)}) do ${formatWeight(
+  const label = `Wykres: od ${formatNumber(points[0].value)} ${unit} (${formatDay(points[0].date)}) do ${formatNumber(
     points[last].value,
   )} ${unit} (${formatDay(points[last].date)})`;
 

@@ -5,7 +5,7 @@ import { useStore } from '../state/store';
 import { Header } from '../ui/Chrome';
 import { ExerciseBrowser, ExerciseForm } from '../ui/ExerciseBrowser';
 import { ExerciseGuide } from '../ui/ExerciseGuide';
-import { formatClock, formatDay, formatEntrySet, formatWeight, formatWhole } from '../ui/format';
+import { formatClock, formatDay, formatEntrySet, formatVolume, formatWeight, toUnit, weightUnit } from '../ui/format';
 import { Icon } from '../ui/Icon';
 import { LineChart } from '../ui/LineChart';
 import { Confirm } from '../ui/Sheet';
@@ -111,7 +111,7 @@ export function ExerciseDetail() {
           {showChart && (
             <section className="section">
               <h2 className="label">{timed ? 'Najdłuższa seria w treningu' : 'Szacowany maks. na 1 powtórzenie'}</h2>
-              <LineChart points={series} unit={timed ? 's' : 'kg'} />
+              <LineChart points={timed ? series : series.map((p) => ({ ...p, value: toUnit(p.value) }))} unit={timed ? 's' : weightUnit()} />
             </section>
           )}
 
@@ -132,7 +132,7 @@ export function ExerciseDetail() {
             <div className="stats" style={{ marginTop: 12 }}>
               <div>
                 <div className="stat-value">
-                  {records.maxWeight ? formatWeight(records.maxWeight.weight) : '—'} <small>kg</small>
+                  {records.maxWeight ? formatWeight(records.maxWeight.weight) : '—'} <small>{weightUnit()}</small>
                 </div>
                 <div className="stat-label">
                   Najcięższa seria{records.maxWeight && ` · ${records.maxWeight.reps} powt.`}
@@ -140,13 +140,13 @@ export function ExerciseDetail() {
               </div>
               <div>
                 <div className="stat-value">
-                  {records.best1RM ? formatWeight(Math.round(records.best1RM.value * 10) / 10) : '—'} <small>kg</small>
+                  {records.best1RM ? formatWeight(Math.round(records.best1RM.value * 10) / 10) : '—'} <small>{weightUnit()}</small>
                 </div>
                 <div className="stat-label">Szacowane 1RM</div>
               </div>
               <div>
                 <div className="stat-value">
-                  {records.maxVolume ? formatWhole(records.maxVolume.value) : '—'} <small>kg</small>
+                  {records.maxVolume ? formatVolume(records.maxVolume.value) : '—'} <small>{weightUnit()}</small>
                 </div>
                 <div className="stat-label">Objętość w treningu</div>
               </div>

@@ -1,11 +1,37 @@
+import type { WeightUnit } from '../domain/types';
+
 const number = new Intl.NumberFormat('pl-PL', { maximumFractionDigits: 2 });
 const whole = new Intl.NumberFormat('pl-PL', { maximumFractionDigits: 0 });
 const dayFormat = new Intl.DateTimeFormat('pl-PL', { weekday: 'short', day: 'numeric', month: 'short' });
 const dayYearFormat = new Intl.DateTimeFormat('pl-PL', { day: 'numeric', month: 'short', year: 'numeric' });
 const longDayFormat = new Intl.DateTimeFormat('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' });
 
-/** "62,5" */
-export const formatWeight = (kg: number) => number.format(kg);
+const KG_PER_LB = 0.45359237;
+let unit: WeightUnit = 'kg';
+
+/** Sets the unit weights are shown and typed in. Called by the store whenever the setting changes. */
+export const setWeightUnit = (next: WeightUnit) => {
+  unit = next;
+};
+/** "kg" or "lb". */
+export const weightUnit = () => unit;
+/** Stored kilograms as a number in the display unit, unrounded. */
+export const toUnit = (kg: number) => (unit === 'lb' ? kg / KG_PER_LB : kg);
+/** A number typed in the display unit, as kilograms. */
+export const fromUnit = (value: number) => (unit === 'lb' ? Math.round(value * KG_PER_LB * 10000) / 10000 : value);
+/** Stored kilograms as the value to put in an input: pounds are rounded to 0.1 so they read back as typed. */
+export const displayWeight = (kg: number) => (unit === 'lb' ? Math.round(toUnit(kg) * 10) / 10 : kg);
+/** Smallest sensible jump when adding weight: 2.5 kg, or 5 lb. Returned in kilograms. */
+export const weightStep = () => (unit === 'lb' ? 5 * KG_PER_LB : 2.5);
+
+/** "62,5" — a plain number, no unit conversion (repetitions, seconds, centimetres). */
+export const formatNumber = (n: number) => number.format(n);
+
+/** Stored kilograms in the display unit: "62,5", or "137,8" in pounds. */
+export const formatWeight = (kg: number) => number.format(displayWeight(kg));
+
+/** A total of kilograms moved, in the display unit and without decimals: "4 520". */
+export const formatVolume = (kg: number) => whole.format(toUnit(kg));
 
 /** "4 520" */
 export const formatWhole = (n: number) => whole.format(n);
@@ -19,12 +45,12 @@ export function formatDay(iso: string): string {
 export const formatLongDay = (date: Date) => longDayFormat.format(date);
 
 /** "80 kg × 8" */
-export const formatSet = (weight: number, reps: number) => `${formatWeight(weight)} kg × ${reps}`;
+export const formatSet = (weight: number, reps: number) => `${formatWeight(weight)} ${unit} × ${reps}`;
 
 /** A logged set: "80 kg × 8", or for a timed exercise "45 s" / "40 kg × 45 s". */
 export function formatEntrySet(set: { weight: number; reps: number }, timed = false): string {
   if (!timed) return formatSet(set.weight, set.reps);
-  return set.weight > 0 ? `${formatWeight(set.weight)} kg × ${set.reps} s` : `${set.reps} s`;
+  return set.weight > 0 ? `${formatWeight(set.weight)} ${unit} × ${set.reps} s` : `${set.reps} s`;
 }
 
 /** Target range: "8–10 powt.", "10 powt.", "30–60 s"; empty when there is no target. */

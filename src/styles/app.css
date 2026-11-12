@@ -1405,3 +1405,19 @@ button.set-index {
   font-weight: 650;
   letter-spacing: -0.01em;
 }
+
+/* ---------- backup reminder ---------- */
+
+.reminder {
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  font-size: 15px;
+}
+
+.reminder-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}

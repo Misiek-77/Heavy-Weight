@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { BAR_WEIGHTS, plateLoad } from '../domain/plates';
-import { formatWeight } from './format';
+import { BAR_WEIGHTS, BAR_WEIGHTS_LB, STANDARD_PLATES, STANDARD_PLATES_LB, plateLoad } from '../domain/plates';
+import { displayWeight, formatNumber, weightUnit } from './format';
 import { NumberField } from './NumberField';
 import { Sheet } from './Sheet';
 
@@ -14,22 +14,25 @@ export function PlateCalculator({ open, onClose, initialWeight }: { open: boolea
 }
 
 function Calculator({ initialWeight }: { initialWeight: number }) {
-  const [target, setTarget] = useState(initialWeight);
-  const [bar, setBar] = useState<number>(BAR_WEIGHTS[0]);
-  const load = plateLoad(target, bar);
+  // The calculator works in the display unit throughout: pounds use pound plates and bars.
+  const unit = weightUnit();
+  const bars = unit === 'lb' ? BAR_WEIGHTS_LB : BAR_WEIGHTS;
+  const [target, setTarget] = useState(() => displayWeight(initialWeight));
+  const [bar, setBar] = useState<number>(bars[0]);
+  const load = plateLoad(target, bar, unit === 'lb' ? STANDARD_PLATES_LB : STANDARD_PLATES);
 
   return (
     <div className="stack">
       <label className="field">
-        <span>Ciężar na sztandze (kg)</span>
-        <NumberField label="Ciężar na sztandze w kg" value={target} onChange={setTarget} />
+        <span>Ciężar na sztandze ({unit})</span>
+        <NumberField label={`Ciężar na sztandze w ${unit}`} value={target} onChange={setTarget} />
       </label>
       <div>
         <span className="label">Sztanga</span>
         <div className="chips" role="group" aria-label="Waga sztangi" style={{ marginTop: 8 }}>
-          {BAR_WEIGHTS.map((w) => (
+          {bars.map((w) => (
             <button key={w} type="button" className="chip" aria-pressed={bar === w} onClick={() => setBar(w)}>
-              {w} kg
+              {w} {unit}
             </button>
           ))}
         </div>
@@ -40,8 +43,8 @@ function Calculator({ initialWeight }: { initialWeight: number }) {
         {load.perSide.length > 0 ? (
           <ul className="plates">
             {load.perSide.map((plate, i) => (
-              <li key={i} className="plate" style={{ '--size': plate } as React.CSSProperties}>
-                {formatWeight(plate)}
+              <li key={i} className="plate" style={{ '--size': unit === 'lb' ? plate / 2 : plate } as React.CSSProperties}>
+                {formatNumber(plate)}
               </li>
             ))}
           </ul>
@@ -52,8 +55,8 @@ function Calculator({ initialWeight }: { initialWeight: number }) {
         )}
         {load.perSide.length > 0 && (
           <p className="muted small" style={{ marginTop: 10 }}>
-            Razem {formatWeight(load.loaded)} kg ze sztangą {bar} kg.
-            {load.missing > 0 && ` Brakuje ${formatWeight(load.missing)} kg — standardowymi talerzami nie da się tego złożyć.`}
+            Razem {formatNumber(load.loaded)} {unit} ze sztangą {bar} {unit}.
+            {load.missing > 0 && ` Brakuje ${formatNumber(load.missing)} ${unit} — standardowymi talerzami nie da się tego złożyć.`}
           </p>
         )}
       </div>

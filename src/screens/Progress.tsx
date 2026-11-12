@@ -6,7 +6,7 @@ import { MEASURES, type Measure, type Measurement } from '../domain/types';
 import { useStore } from '../state/store';
 import { Header } from '../ui/Chrome';
 import { GoalsSection } from './Goals';
-import { formatDay, formatWeight, formatWhole, plural } from '../ui/format';
+import { displayWeight, formatDay, formatNumber, formatVolume, fromUnit, plural, toUnit, weightUnit } from '../ui/format';
 import { Icon } from '../ui/Icon';
 import { LineChart } from '../ui/LineChart';
 import { MEASURE_INFO } from '../ui/measures';
@@ -32,14 +32,14 @@ export function ProgressScreen() {
       <p className="subtitle">
         {summary.allTime.workouts === 0
           ? 'Zakończ pierwszy trening, a pojawią się tu liczby.'
-          : `${plural(summary.allTime.workouts, 'trening', 'treningi', 'treningów')} łącznie · ${formatWhole(summary.allTime.volume)} kg`}
+          : `${plural(summary.allTime.workouts, 'trening', 'treningi', 'treningów')} łącznie · ${formatVolume(summary.allTime.volume)} ${weightUnit()}`}
       </p>
 
       <section className="section">
         <h2 className="label">Ten tydzień</h2>
         <div className="stats">
           <Stat value={summary.week.workouts} label="Treningi" />
-          <Stat value={formatWhole(summary.week.volume)} unit="kg" label="Objętość" />
+          <Stat value={formatVolume(summary.week.volume)} unit={weightUnit()} label="Objętość" />
           <Stat value={summary.weekStreak} label={summary.weekStreak === 1 ? 'Tydzień z rzędu' : 'Tygodni z rzędu'} />
         </div>
       </section>
@@ -48,7 +48,7 @@ export function ProgressScreen() {
         <h2 className="label">Ten miesiąc</h2>
         <div className="stats">
           <Stat value={summary.month.workouts} label="Treningi" />
-          <Stat value={formatWhole(summary.month.volume)} unit="kg" label="Objętość" />
+          <Stat value={formatVolume(summary.month.volume)} unit={weightUnit()} label="Objętość" />
           <span />
         </div>
       </section>
@@ -165,7 +165,7 @@ function MuscleGroups({ now }: { now: Date }) {
               <span className="bar-fill" style={{ width: `${(l.sets / max) * 100}%` }} />
             </span>
             <span className="bar-value">
-              {l.sets === 0 ? 'brak serii' : `${plural(l.sets, 'seria', 'serie', 'serii')} · ${formatWhole(l.volume)} kg`}
+              {l.sets === 0 ? 'brak serii' : `${plural(l.sets, 'seria', 'serie', 'serii')} · ${formatVolume(l.volume)} ${weightUnit()}`}
             </span>
           </li>
         ))}
@@ -180,8 +180,13 @@ function BodyMeasurements({ now }: { now: Date }) {
   const [adding, setAdding] = useState(false);
   const [removing, setRemoving] = useState<Measurement | null>(null);
   const sorted = useMemo(() => [...store.measurements].sort((a, b) => a.date.localeCompare(b.date)), [store.measurements]);
-  const points = sorted.filter((m) => m.values[measure] !== undefined).map((m) => ({ date: m.date, value: m.values[measure]! }));
-  const { label, unit } = MEASURE_INFO[measure];
+  const shown = (m: Measure, value: number) => (m === 'weight' ? toUnit(value) : value);
+  const unitOf = (m: Measure) => (m === 'weight' ? weightUnit() : MEASURE_INFO[m].unit);
+  const points = sorted
+    .filter((m) => m.values[measure] !== undefined)
+    .map((m) => ({ date: m.date, value: shown(measure, m.values[measure]!) }));
+  const { label } = MEASURE_INFO[measure];
+  const unit = unitOf(measure);
   const latest = points.at(-1);
   const change = latest && points.length > 1 ? latest.value - points[0].value : null;
 
@@ -199,10 +204,10 @@ function BodyMeasurements({ now }: { now: Date }) {
       {latest ? (
         <>
           <div className="stats" style={{ marginTop: 16 }}>
-            <Stat value={formatWeight(latest.value)} unit={unit} label={formatDay(latest.date)} />
+            <Stat value={formatNumber(Math.round(latest.value * 10) / 10)} unit={unit} label={formatDay(latest.date)} />
             {change !== null ? (
               <Stat
-                value={`${change > 0 ? '+' : change < 0 ? '−' : ''}${formatWeight(Math.abs(change))}`}
+                value={`${change > 0 ? '+' : change < 0 ? '−' : ''}${formatNumber(Math.round(Math.abs(change) * 10) / 10)}`}
                 unit={unit}
                 label={`Od ${formatDay(points[0].date)}`}
               />
@@ -231,7 +236,7 @@ function BodyMeasurements({ now }: { now: Date }) {
                   <span className="item-title">{formatDay(m.date)}</span>
                   <span className="item-sub" style={{ display: 'block' }}>
                     {MEASURES.filter((k) => m.values[k] !== undefined)
-                      .map((k) => `${MEASURE_INFO[k].label} ${formatWeight(m.values[k]!)} ${MEASURE_INFO[k].unit}`)
+                      .map((k) => `${MEASURE_INFO[k].label} ${formatNumber(Math.round(shown(k, m.values[k]!) * 10) / 10)} ${unitOf(k)}`)
                       .join(' · ')}
                   </span>
                 </span>
@@ -296,12 +301,12 @@ function MeasurementForm({ today, onDone }: { today: string; onDone(): void }) {
         {MEASURES.map((m) => (
           <label className="field" key={m}>
             <span>
-              {MEASURE_INFO[m].label} ({MEASURE_INFO[m].unit})
+              {MEASURE_INFO[m].label} ({m === 'weight' ? weightUnit() : MEASURE_INFO[m].unit})
             </span>
             <NumberField
-              label={`${MEASURE_INFO[m].label} w ${MEASURE_INFO[m].unit}`}
-              value={values[m] ?? 0}
-              onChange={(value) => setValues((v) => ({ ...v, [m]: value }))}
+              label={`${MEASURE_INFO[m].label} w ${m === 'weight' ? weightUnit() : MEASURE_INFO[m].unit}`}
+              value={m === 'weight' ? displayWeight(values[m] ?? 0) : (values[m] ?? 0)}
+              onChange={(value) => setValues((v) => ({ ...v, [m]: m === 'weight' ? fromUnit(value) : value }))}
             />
           </label>
         ))}

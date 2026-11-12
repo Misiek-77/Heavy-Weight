@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { Repository } from '../data/repository';
+import { setWeightUnit } from '../ui/format';
 import { SEED_EXERCISES, SEED_PLANS, TIMED_SEEDS } from '../domain/seed';
 import {
   DEFAULT_SETTINGS,
@@ -129,6 +130,8 @@ export function StoreProvider({ repository, children }: { repository: Repository
   const data = state.status === 'ready' ? state.data : null;
   const store = useMemo<Store | null>(() => {
     if (!data) return null;
+    // Set before any screen renders with these settings, so every formatted weight uses the chosen unit.
+    setWeightUnit(data.settings.unit);
     const names = new Map(data.exercises.map((e) => [e.id, e.name]));
     return {
       ...data,

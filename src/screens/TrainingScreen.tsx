@@ -2,11 +2,12 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { finishedWorkouts, workoutVolume } from '../domain/stats';
 import type { Plan, Workout } from '../domain/types';
+import { backupDue, snoozeUntil } from '../domain/backupReminder';
 import { planForDay } from '../domain/wizard';
 import { createWorkout } from '../domain/workout';
 import { useStore } from '../state/store';
 import { Header } from '../ui/Chrome';
-import { formatDay, formatDuration, formatLongDay, formatWhole, plural } from '../ui/format';
+import { formatDay, formatDuration, formatLongDay, formatVolume, plural, weightStep, weightUnit } from '../ui/format';
 import { Icon } from '../ui/Icon';
 import { Sheet } from '../ui/Sheet';
 import { ActiveWorkout } from './ActiveWorkout';
@@ -25,10 +26,12 @@ export function TrainingScreen() {
 
   const start = (plan?: Plan) =>
     store.saveWorkout(
-      createWorkout({ plan, name: plan?.name ?? 'Trening', now: new Date().toISOString(), history: store.workouts }),
+      createWorkout({ plan, name: plan?.name ?? 'Trening', now: new Date().toISOString(), history: store.workouts, step: weightStep() }),
     );
   const last = finishedWorkouts(store.workouts)[0];
   const today = planForDay(store.settings.schedule, store.plans, new Date());
+  const finishedCount = store.workouts.filter((w) => w.finishedAt).length;
+  const remind = backupDue(store.settings, finishedCount, new Date());
   const scheduled = store.settings.schedule.some((id) => store.plans.some((p) => p.id === id));
 
   return (
@@ -43,6 +46,27 @@ export function TrainingScreen() {
         {formatLongDay(new Date())}
         {last && ` · ostatnio ${last.name}, ${formatDay(last.startedAt)}`}
       </p>
+
+      {remind && (
+        <section className="section reminder" role="note">
+          <p>
+            <strong>Zrób kopię zapasową.</strong> Masz {plural(finishedCount, 'trening', 'treningi', 'treningów')} zapisanych tylko na
+            tym urządzeniu{store.settings.lastBackupAt ? `, a ostatnia kopia jest z dnia ${formatDay(store.settings.lastBackupAt)}` : ''}.
+          </p>
+          <div className="reminder-actions">
+            <Link className="btn btn-small btn-primary" to="/ustawienia">
+              Przejdź do kopii
+            </Link>
+            <button
+              type="button"
+              className="btn btn-small btn-quiet"
+              onClick={() => store.saveSettings({ ...store.settings, backupSnoozedUntil: snoozeUntil(new Date()) })}
+            >
+              Później
+            </button>
+          </div>
+        </section>
+      )}
 
       {today ? (
         <section className="section today">
@@ -128,7 +152,7 @@ function Summary({ summary, onClose }: { summary: WorkoutSummary; onClose(): voi
         </div>
         <div>
           <div className="stat-value">
-            {formatWhole(workoutVolume(workout, timedIds))} <small>kg</small>
+            {formatVolume(workoutVolume(workout, timedIds))} <small>{weightUnit()}</small>
           </div>
           <div className="stat-label">Objętość</div>
         </div>

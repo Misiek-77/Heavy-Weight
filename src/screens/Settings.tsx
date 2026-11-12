@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { parseBackup, serializeBackup } from '../data/backup';
 import type { AppData } from '../domain/types';
 import { useStore } from '../state/store';
+import { WEIGHT_UNITS } from '../domain/types';
 import { getTheme, setTheme, useSystemDark, type Theme } from '../state/theme';
 import { Header } from '../ui/Chrome';
 import { formatClock, plural } from '../ui/format';
@@ -42,6 +43,9 @@ export function SettingsScreen() {
     link.download = `trening-kopia-${now.toISOString().slice(0, 10)}.json`;
     link.click();
     URL.revokeObjectURL(link.href);
+    // Remembered so the backup reminder knows the data is safe for a while.
+    const { backupSnoozedUntil: _snooze, ...rest } = settings;
+    store.saveSettings({ ...rest, lastBackupAt: now.toISOString() });
     setMessage({ kind: 'ok', text: 'Kopia zapasowa została pobrana.' });
   }
 
@@ -92,6 +96,26 @@ export function SettingsScreen() {
             Zgodnie z ustawieniem urządzenia, obecnie {systemDark ? 'ciemny' : 'jasny'}.
           </p>
         )}
+      </section>
+
+      <section className="section">
+        <h2 className="label">Jednostki ciężaru</h2>
+        <div className="chips" role="group" aria-label="Jednostki ciężaru" style={{ marginTop: 10 }}>
+          {WEIGHT_UNITS.map((unit) => (
+            <button
+              key={unit}
+              type="button"
+              className="chip"
+              aria-pressed={store.settings.unit === unit}
+              onClick={() => store.saveSettings({ ...store.settings, unit })}
+            >
+              {unit === 'kg' ? 'Kilogramy (kg)' : 'Funty (lb)'}
+            </button>
+          ))}
+        </div>
+        <p className="muted small" style={{ marginTop: 8 }}>
+          Dotyczy ciężarów, objętości i wagi ciała. Zapisane wyniki przeliczają się same; obwody zostają w centymetrach.
+        </p>
       </section>
 
       <section className="section">

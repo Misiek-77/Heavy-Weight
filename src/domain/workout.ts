@@ -24,11 +24,11 @@ export function shouldIncrease(previous: WorkoutSet[], repMax: number | undefine
 }
 
 /** Prefilled sets for an exercise with a rep range: heavier and back at the bottom of the range when earned. */
-function targetSets(previous: WorkoutSet[], count: number, targets: EntryTargets): WorkoutSet[] {
+function targetSets(previous: WorkoutSet[], count: number, targets: EntryTargets, step = WEIGHT_STEP): WorkoutSet[] {
   const sets = prefilledSets(previous, count);
   if (!shouldIncrease(previous, targets.repMax)) return sets;
   return sets.map((s) =>
-    s.kind === 'warmup' ? s : { ...s, weight: s.weight + WEIGHT_STEP, reps: targets.repMin ?? s.reps },
+    s.kind === 'warmup' ? s : { ...s, weight: s.weight + step, reps: targets.repMin ?? s.reps },
   );
 }
 
@@ -46,7 +46,7 @@ function mapEntry(w: Workout, entryIndex: number, fn: (e: WorkoutEntry) => Worko
   return withEntries(w, w.entries.map((e, i) => (i === entryIndex ? fn(e) : e)));
 }
 
-export function createWorkout(opts: { plan?: Plan; name: string; now: string; history: Workout[] }): Workout {
+export function createWorkout(opts: { plan?: Plan; name: string; now: string; history: Workout[]; step?: number }): Workout {
   const { plan, history } = opts;
   return {
     id: newId(),
@@ -56,7 +56,7 @@ export function createWorkout(opts: { plan?: Plan; name: string; now: string; hi
     updatedAt: opts.now,
     entries: (plan?.items ?? []).map((item, i, items) => ({
       exerciseId: item.exerciseId,
-      sets: targetSets(lastPerformance(history, item.exerciseId), Math.max(1, item.targetSets), item),
+      sets: targetSets(lastPerformance(history, item.exerciseId), Math.max(1, item.targetSets), item, opts.step),
       ...targetsOf(item),
       // The last exercise has nothing after it to be paired with.
       ...(i === items.length - 1 ? { linkNext: undefined } : {}),
@@ -90,7 +90,7 @@ export function toggleLink(w: Workout, entryIndex: number): Workout {
  * Swaps the exercise for another one (the machine is taken). Sets already done stay logged under the
  * original exercise; the remaining ones move to the replacement, prefilled from its own history.
  */
-export function swapExercise(w: Workout, entryIndex: number, exerciseId: string, history: Workout[]): Workout {
+export function swapExercise(w: Workout, entryIndex: number, exerciseId: string, history: Workout[], step?: number): Workout {
   const entry = w.entries[entryIndex];
   if (!entry || entry.exerciseId === exerciseId) return w;
   const done = entry.sets.filter((s) => s.done);
@@ -98,7 +98,7 @@ export function swapExercise(w: Workout, entryIndex: number, exerciseId: string,
   const replacement: WorkoutEntry = {
     ...targetsOf(entry),
     exerciseId,
-    sets: targetSets(lastPerformance(history, exerciseId), remaining, entry),
+    sets: targetSets(lastPerformance(history, exerciseId), remaining, entry, step),
   };
   if (done.length === 0) return withEntries(w, w.entries.map((e, i) => (i === entryIndex ? replacement : e)));
   const kept: WorkoutEntry = { ...entry, sets: done, linkNext: undefined };

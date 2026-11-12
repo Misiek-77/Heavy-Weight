@@ -6,7 +6,7 @@ import { useStore } from '../state/store';
 import { Header } from '../ui/Chrome';
 import { ExerciseThumb } from '../ui/ExerciseThumb';
 import { SET_KIND_INFO } from '../ui/setKinds';
-import { formatDay, formatDuration, formatEntrySet, formatRange, formatWhole, plural } from '../ui/format';
+import { formatDay, formatDuration, formatEntrySet, formatRange, formatVolume, plural, weightUnit } from '../ui/format';
 import { Icon } from '../ui/Icon';
 import { Confirm } from '../ui/Sheet';
 
@@ -37,7 +37,7 @@ export function HistoryScreen() {
                   <span className="item-main">
                     <span className="item-title">{w.name}</span>
                     <span className="item-sub" style={{ display: 'block' }}>
-                      {formatDay(w.startedAt)} · {formatDuration(durationOf(w))} · {formatWhole(workoutVolume(w, timedIds))} kg
+                      {formatDay(w.startedAt)} · {formatDuration(durationOf(w))} · {formatVolume(workoutVolume(w, timedIds))} {weightUnit()}
                     </span>
                   </span>
                   <span className="item-end">
@@ -78,7 +78,7 @@ export function WorkoutDetail() {
         </div>
         <div>
           <div className="stat-value">
-            {formatWhole(workoutVolume(workout, store.timedIds))} <small>kg</small>
+            {formatVolume(workoutVolume(workout, store.timedIds))} <small>{weightUnit()}</small>
           </div>
           <div className="stat-label">Objętość</div>
         </div>

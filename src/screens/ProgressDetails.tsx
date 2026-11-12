@@ -7,7 +7,7 @@ import { MUSCLE_GROUPS, type Photo } from '../domain/types';
 import { useStore } from '../state/store';
 import { Header } from '../ui/Chrome';
 import { ExerciseThumb } from '../ui/ExerciseThumb';
-import { formatDay, formatWeight, formatWhole } from '../ui/format';
+import { formatDay, formatNumber, formatWeight, formatWhole, toUnit, weightUnit } from '../ui/format';
 import { Icon } from '../ui/Icon';
 import { Confirm } from '../ui/Sheet';
 
@@ -36,18 +36,21 @@ export function RecordsScreen() {
             ) : (
               <ul className="list">
                 {events.slice(0, 20).map((e, i) => {
-                  const unit = store.timedIds.has(e.exerciseId) ? 's' : 'kg';
+                  const timed = store.timedIds.has(e.exerciseId);
+                  const unit = timed ? 's' : weightUnit();
+                  // Seconds are plain numbers; weights go through the unit setting.
+                  const show = timed ? formatNumber : formatWeight;
                   return (
                     <li key={i}>
                       <Link className="item" to={`/historia/${e.workoutId}`}>
                         <span className="item-main">
                           <span className="item-title">{store.exerciseName(e.exerciseId)}</span>
                           <span className="item-sub" style={{ display: 'block' }}>
-                            {formatDay(e.date)} · {formatWeight(e.previous)} → {formatWeight(e.value)} {unit}
+                            {formatDay(e.date)} · {show(e.previous)} → {show(e.value)} {unit}
                           </span>
                         </span>
                         <span className="delta up">
-                          +{formatWeight(Math.round((e.value - e.previous) * 100) / 100)} {unit}
+                          +{show(e.value - e.previous)} {unit}
                         </span>
                       </Link>
                     </li>
@@ -69,7 +72,7 @@ export function RecordsScreen() {
                       <span className="item-sub" style={{ display: 'block' }}>
                         {exercise.timed
                           ? `${r.longest!.reps} s`
-                          : `${formatWeight(r.maxWeight!.weight)} kg × ${r.maxWeight!.reps} · 1RM ${formatWeight(Math.round(r.best1RM!.value * 10) / 10)} kg`}
+                          : `${formatWeight(r.maxWeight!.weight)} ${weightUnit()} × ${r.maxWeight!.reps} · 1RM ${formatWeight(Math.round(r.best1RM!.value * 10) / 10)} ${weightUnit()}`}
                         {' · '}
                         {formatDay(date)}
                       </span>
@@ -121,7 +124,7 @@ export function CompareScreen() {
           </thead>
           <tbody>
             <CompareRow label="Treningi" before={previous.workouts} after={current.workouts} />
-            <CompareRow label="Objętość (kg)" before={previous.volume} after={current.volume} />
+            <CompareRow label={`Objętość (${weightUnit()})`} before={toUnit(previous.volume)} after={toUnit(current.volume)} />
             <CompareRow label="Serie" before={previous.sets} after={current.sets} />
           </tbody>
         </table>

@@ -3,7 +3,6 @@ import { guideFor } from '../domain/guides';
 import { lastPerformance, liveRecord, newRecordExerciseIds } from '../domain/stats';
 import { SET_KINDS, type Workout, type WorkoutSet } from '../domain/types';
 import {
-  WEIGHT_STEP,
   addEntry,
   addSet,
   finishWorkout,
@@ -20,7 +19,7 @@ import { useStore } from '../state/store';
 import { ExercisePicker } from '../ui/ExerciseBrowser';
 import { ExerciseGuide } from '../ui/ExerciseGuide';
 import { ExerciseThumb } from '../ui/ExerciseThumb';
-import { formatClock, formatEntrySet, formatRange, formatWeight } from '../ui/format';
+import { displayWeight, formatClock, formatEntrySet, formatRange, formatWeight, fromUnit, weightStep, weightUnit } from '../ui/format';
 import { Icon } from '../ui/Icon';
 import { NoteField } from '../ui/NoteField';
 import { NumberField } from '../ui/NumberField';
@@ -174,14 +173,14 @@ export function ActiveWorkout({ workout, onFinished }: { workout: Workout; onFin
                 <p className="entry-target">
                   Cel: {range}
                   {shouldIncrease(previous, entry.repMax) &&
-                    ` · poprzednio górna granica w każdej serii, więc dodano ${formatWeight(WEIGHT_STEP)} kg`}
+                    ` · poprzednio górna granica w każdej serii, więc dodano ${formatWeight(weightStep())} ${weightUnit()}`}
                 </p>
               )}
               <div className="sets">
                 <div className="sets-head" aria-hidden="true">
                   <span>#</span>
                   <span>Poprzednio</span>
-                  <span>kg</span>
+                  <span>{weightUnit()}</span>
                   <span>{timed ? 'Sek.' : 'Powt.'}</span>
                   <span />
                 </div>
@@ -200,9 +199,9 @@ export function ActiveWorkout({ workout, onFinished }: { workout: Workout; onFin
                       </button>
                       <span className="set-prev">{prev ? formatEntrySet(prev, timed) : '—'}</span>
                       <NumberField
-                        label={`${name}, seria ${n}, ciężar w kg`}
-                        value={set.weight}
-                        onChange={(weight) => save(updateSet(workout, entryIndex, setIndex, { weight }))}
+                        label={`${name}, seria ${n}, ciężar w ${weightUnit()}`}
+                        value={displayWeight(set.weight)}
+                        onChange={(weight) => save(updateSet(workout, entryIndex, setIndex, { weight: fromUnit(weight) }))}
                       />
                       <NumberField
                         integer
@@ -302,7 +301,7 @@ export function ActiveWorkout({ workout, onFinished }: { workout: Workout; onFin
         onClose={() => setSwapIndex(null)}
         title={swapped ? `Zamień: ${swapped.name}` : 'Zamień ćwiczenie'}
         filter={swapped ? (e) => e.muscleGroup === swapped.muscleGroup && e.id !== swapped.id : undefined}
-        onPick={(id) => swapIndex !== null && save(swapExercise(workout, swapIndex, id, history))}
+        onPick={(id) => swapIndex !== null && save(swapExercise(workout, swapIndex, id, history, weightStep()))}
       />
       <Sheet open={kindTarget !== null} onClose={() => setKindTarget(null)} title="Rodzaj serii">
         <ul className="list">

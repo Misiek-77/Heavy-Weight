@@ -1,6 +1,9 @@
 /** Plates found in most gyms, in kg, heaviest first. */
 export const STANDARD_PLATES = [25, 20, 15, 10, 5, 2.5, 1.25] as const;
 export const BAR_WEIGHTS = [20, 15, 10] as const;
+/** The same for gyms that load in pounds. */
+export const STANDARD_PLATES_LB = [45, 35, 25, 10, 5, 2.5] as const;
+export const BAR_WEIGHTS_LB = [45, 35] as const;
 
 export interface PlateLoad {
   /** Plates for one side of the bar, heaviest first. */

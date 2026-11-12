@@ -4,7 +4,7 @@ import { goalProgress } from '../domain/insights';
 import type { Goal } from '../domain/types';
 import { useStore } from '../state/store';
 import { ExercisePicker } from '../ui/ExerciseBrowser';
-import { formatWeight, plural } from '../ui/format';
+import { formatWeight, fromUnit, plural, weightUnit } from '../ui/format';
 import { Icon } from '../ui/Icon';
 import { NumberField } from '../ui/NumberField';
 import { Confirm, Sheet } from '../ui/Sheet';
@@ -19,20 +19,20 @@ export function GoalsSection({ now }: { now: Date }) {
     <section className="section">
       <h2 className="label">Cele</h2>
       {store.goals.length === 0 ? (
-        <p className="empty">Ustaw cel, np. 100 kg w wyciskaniu albo 3 treningi w tygodniu.</p>
+        <p className="empty">Ustaw cel, np. konkretny ciężar w wyciskaniu albo 3 treningi w tygodniu.</p>
       ) : (
         <ul className="goals">
           {store.goals.map((goal) => {
             const p = goalProgress(goal, store.workouts, now);
             const title =
               goal.kind === 'lift'
-                ? `${store.exerciseName(goal.exerciseId)}: ${formatWeight(goal.targetWeight)} kg`
+                ? `${store.exerciseName(goal.exerciseId)}: ${formatWeight(goal.targetWeight)} ${weightUnit()}`
                 : `${plural(goal.perWeek, 'trening', 'treningi', 'treningów')} w tygodniu`;
             const status =
               goal.kind === 'lift'
                 ? p.reached
-                  ? `Osiągnięty — najcięższa seria ${formatWeight(p.current)} kg`
-                  : `Najcięższa seria ${formatWeight(p.current)} kg, brakuje ${formatWeight(Math.round((p.target - p.current) * 100) / 100)} kg`
+                  ? `Osiągnięty — najcięższa seria ${formatWeight(p.current)} ${weightUnit()}`
+                  : `Najcięższa seria ${formatWeight(p.current)} ${weightUnit()}, brakuje ${formatWeight(p.target - p.current)} ${weightUnit()}`
                 : p.reached
                   ? `Osiągnięty w tym tygodniu (${p.current} z ${p.target})`
                   : `${p.current} z ${p.target} w tym tygodniu`;
@@ -96,7 +96,7 @@ function GoalForm({ onDone }: { onDone(): void }) {
         e.preventDefault();
         if (!valid) return;
         store.saveGoal(
-          kind === 'lift' ? { id: newId(), kind, exerciseId: exerciseId!, targetWeight } : { id: newId(), kind, perWeek },
+          kind === 'lift' ? { id: newId(), kind, exerciseId: exerciseId!, targetWeight: fromUnit(targetWeight) } : { id: newId(), kind, perWeek },
         );
         onDone();
       }}
@@ -116,8 +116,8 @@ function GoalForm({ onDone }: { onDone(): void }) {
             {exerciseId ? store.exerciseName(exerciseId) : 'Wybierz ćwiczenie'}
           </button>
           <label className="field">
-            <span>Docelowy ciężar (kg)</span>
-            <NumberField label="Docelowy ciężar w kg" value={targetWeight} onChange={setTargetWeight} />
+            <span>Docelowy ciężar ({weightUnit()})</span>
+            <NumberField label={`Docelowy ciężar w ${weightUnit()}`} value={targetWeight} onChange={setTargetWeight} />
           </label>
         </>
       ) : (
