@@ -1,4 +1,4 @@
-import type { AppData, Exercise, Plan, Settings, Workout } from '../domain/types';
+import type { AppData, Exercise, Measurement, Plan, Settings, Workout } from '../domain/types';
 
 /**
  * The only way the app reads or writes persistent data.
@@ -11,6 +11,8 @@ export interface Repository {
   deletePlan(id: string): Promise<void>;
   putWorkout(workout: Workout): Promise<void>;
   deleteWorkout(id: string): Promise<void>;
+  putMeasurement(measurement: Measurement): Promise<void>;
+  deleteMeasurement(id: string): Promise<void>;
   putSettings(settings: Settings): Promise<void>;
   /** Replaces everything stored with `data`, atomically. */
   replaceAll(data: AppData): Promise<void>;

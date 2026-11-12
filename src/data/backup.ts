@@ -1,9 +1,11 @@
 import {
   EQUIPMENT,
+  MEASURES,
   MUSCLE_GROUPS,
   SET_KINDS,
   type AppData,
   type Exercise,
+  type Measurement,
   type Plan,
   type Workout,
   type WorkoutSet,
@@ -96,6 +98,21 @@ function workout(v: unknown, exerciseIds: Set<string>): Workout {
   };
 }
 
+function measurement(v: unknown): Measurement {
+  check(
+    isObject(v) && isText(v.id) && isText(v.date) && /^\d{4}-\d{2}-\d{2}$/.test(v.date) && isObject(v.values),
+    'Plik zawiera niepoprawny pomiar ciała.',
+  );
+  const values: Measurement['values'] = {};
+  for (const measure of MEASURES) {
+    const value = v.values[measure];
+    if (value === undefined) continue;
+    check(isAmount(value) && value > 0, 'Plik zawiera pomiar ciała z niepoprawną wartością.');
+    values[measure] = value;
+  }
+  return { id: v.id, date: v.date, values, updatedAt: isText(v.updatedAt) ? v.updatedAt : new Date(0).toISOString() };
+}
+
 /** Validates a backup file. Never throws; on failure the error is a message for the user. */
 export function parseBackup(text: string): BackupResult {
   let file: unknown;
@@ -121,9 +138,18 @@ export function parseBackup(text: string): BackupResult {
     check(ids.size === exercises.length, 'Plik zawiera zduplikowane ćwiczenia.');
     const workouts = d.workouts.map((w) => workout(w, ids));
     check(workouts.filter((w) => !w.finishedAt).length <= 1, 'Plik zawiera więcej niż jeden niezakończony trening.');
+    // Backups made before body measurements existed simply have none.
+    check(d.measurements === undefined || Array.isArray(d.measurements), 'Plik zawiera niepoprawne pomiary ciała.');
+    const measurements = (d.measurements ?? []).map(measurement);
     return {
       ok: true,
-      data: { exercises, plans: d.plans.map(plan), workouts, settings: { restSeconds: d.settings.restSeconds, restSound: d.settings.restSound !== false } },
+      data: {
+        exercises,
+        plans: d.plans.map(plan),
+        workouts,
+        measurements,
+        settings: { restSeconds: d.settings.restSeconds, restSound: d.settings.restSound !== false },
+      },
     };
   } catch (e) {
     if (e instanceof Invalid) return { ok: false, error: e.message };

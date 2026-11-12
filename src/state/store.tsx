@@ -1,7 +1,15 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { Repository } from '../data/repository';
 import { SEED_EXERCISES, SEED_PLANS } from '../domain/seed';
-import { DEFAULT_SETTINGS, type AppData, type Exercise, type Plan, type Settings, type Workout } from '../domain/types';
+import {
+  DEFAULT_SETTINGS,
+  type AppData,
+  type Exercise,
+  type Measurement,
+  type Plan,
+  type Settings,
+  type Workout,
+} from '../domain/types';
 
 export interface Store extends AppData {
   /** The workout in progress, if any. */
@@ -15,6 +23,8 @@ export interface Store extends AppData {
   removePlan(id: string): void;
   saveWorkout(workout: Workout): void;
   removeWorkout(id: string): void;
+  saveMeasurement(measurement: Measurement): void;
+  removeMeasurement(id: string): void;
   saveSettings(settings: Settings): void;
   replaceAll(data: AppData): Promise<void>;
 }
@@ -44,7 +54,7 @@ export function StoreProvider({ repository, children }: { repository: Repository
       let data = await repository.loadAll();
       if (data.exercises.length === 0) {
         // First run: exercises are never deleted (only archived), so an empty list means a fresh install.
-        data = { exercises: SEED_EXERCISES, plans: SEED_PLANS, workouts: [], settings: DEFAULT_SETTINGS };
+        data = { exercises: SEED_EXERCISES, plans: SEED_PLANS, workouts: [], measurements: [], settings: DEFAULT_SETTINGS };
         await repository.replaceAll(data);
       }
       if (!cancelled) setState({ status: 'ready', data });
@@ -77,6 +87,13 @@ export function StoreProvider({ repository, children }: { repository: Repository
         commit((d) => ({ ...d, workouts: upsert(d.workouts, w) }), () => repository.putWorkout(w)),
       removeWorkout: (id: string) =>
         commit((d) => ({ ...d, workouts: d.workouts.filter((w) => w.id !== id) }), () => repository.deleteWorkout(id)),
+      saveMeasurement: (m: Measurement) =>
+        commit((d) => ({ ...d, measurements: upsert(d.measurements, m) }), () => repository.putMeasurement(m)),
+      removeMeasurement: (id: string) =>
+        commit(
+          (d) => ({ ...d, measurements: d.measurements.filter((m) => m.id !== id) }),
+          () => repository.deleteMeasurement(id),
+        ),
       saveSettings: (s: Settings) => commit((d) => ({ ...d, settings: s }), () => repository.putSettings(s)),
       replaceAll: async (data: AppData) => {
         await repository.replaceAll(data);

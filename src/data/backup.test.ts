@@ -28,6 +28,7 @@ const data: AppData = {
       ],
     },
   ],
+  measurements: [{ id: 'm1', date: '2026-02-01', values: { weight: 82.4, waist: 88 }, updatedAt: '2026-02-01T08:00:00.000Z' }],
   settings: { restSeconds: 120, restSound: false },
 };
 

@@ -3,6 +3,7 @@ import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { ExerciseDetail, ExercisesScreen } from './screens/Exercises';
 import { HistoryScreen, WorkoutDetail } from './screens/History';
 import { PlanEditor, PlansScreen } from './screens/Plans';
+import { ProgressScreen } from './screens/Progress';
 import { SettingsScreen } from './screens/Settings';
 import { TrainingScreen } from './screens/TrainingScreen';
 import { useRestTimer } from './state/restTimer';
@@ -33,6 +34,7 @@ export function App() {
           <Route path="/plany/:id" element={<PlanEditor />} />
           <Route path="/historia" element={<HistoryScreen />} />
           <Route path="/historia/:id" element={<WorkoutDetail />} />
+          <Route path="/postepy" element={<ProgressScreen />} />
           <Route path="/cwiczenia" element={<ExercisesScreen />} />
           <Route path="/cwiczenia/:id" element={<ExerciseDetail />} />
           <Route path="/ustawienia" element={<SettingsScreen />} />

@@ -65,6 +65,19 @@ export interface Workout {
   updatedAt: string;
 }
 
+/** Body measurements that can be tracked; weight in kg, the rest in cm. */
+export const MEASURES = ['weight', 'waist', 'chest', 'arm', 'thigh', 'hips'] as const;
+export type Measure = (typeof MEASURES)[number];
+
+/** Body measurements taken on one day. At most one entry per day. */
+export interface Measurement {
+  id: string;
+  /** Local calendar day, "2026-03-09". */
+  date: string;
+  values: Partial<Record<Measure, number>>;
+  updatedAt: string;
+}
+
 export interface Settings {
   restSeconds: number;
   /** Play a short signal when the rest ends. */
@@ -77,5 +90,6 @@ export interface AppData {
   exercises: Exercise[];
   plans: Plan[];
   workouts: Workout[];
+  measurements: Measurement[];
   settings: Settings;
 }

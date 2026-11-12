@@ -24,6 +24,7 @@ const TABS: { to: string; label: string; icon: IconName }[] = [
   { to: '/', label: 'Trening', icon: 'dumbbell' },
   { to: '/plany', label: 'Plany', icon: 'plans' },
   { to: '/historia', label: 'Historia', icon: 'history' },
+  { to: '/postepy', label: 'Postępy', icon: 'progress' },
   { to: '/cwiczenia', label: 'Ćwiczenia', icon: 'exercises' },
 ];
 

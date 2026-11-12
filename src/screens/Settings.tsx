@@ -32,9 +32,9 @@ export function SettingsScreen() {
     store.saveSettings({ ...store.settings, restSeconds: Math.min(REST_MAX, Math.max(REST_MIN, restSeconds)) });
 
   function exportData() {
-    const { exercises, plans, workouts, settings } = store;
+    const { exercises, plans, workouts, measurements, settings } = store;
     const now = new Date();
-    const blob = new Blob([serializeBackup({ exercises, plans, workouts, settings }, now.toISOString())], {
+    const blob = new Blob([serializeBackup({ exercises, plans, workouts, measurements, settings }, now.toISOString())], {
       type: 'application/json',
     });
     const link = document.createElement('a');

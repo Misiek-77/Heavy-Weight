@@ -12,6 +12,7 @@ import { formatClock, formatSet } from '../ui/format';
 import { Icon } from '../ui/Icon';
 import { NoteField } from '../ui/NoteField';
 import { NumberField } from '../ui/NumberField';
+import { PlateCalculator } from '../ui/PlateCalculator';
 import { SET_KIND_INFO } from '../ui/setKinds';
 import { Confirm, Sheet } from '../ui/Sheet';
 import type { WorkoutSummary } from './TrainingScreen';
@@ -37,6 +38,12 @@ export function ActiveWorkout({ workout, onFinished }: { workout: Workout; onFin
   const [guideId, setGuideId] = useState<string | null>(null);
   /** Set whose kind is being chosen. */
   const [kindTarget, setKindTarget] = useState<{ entryIndex: number; setIndex: number } | null>(null);
+  /** Weight the plate calculator opens with, or null while it is closed. */
+  const [plates, setPlates] = useState<number | null>(null);
+  const barbellIds = useMemo(
+    () => new Set(store.exercises.filter((e) => e.equipment === 'sztanga').map((e) => e.id)),
+    [store.exercises],
+  );
   /** Message shown briefly after a record-breaking set. */
   const [record, setRecord] = useState<string | null>(null);
   useEffect(() => {
@@ -209,6 +216,15 @@ export function ActiveWorkout({ workout, onFinished }: { workout: Workout; onFin
                 <Icon name="minus" />
                 Usuń ostatnią
               </button>
+              {barbellIds.has(entry.exerciseId) && (
+                <button
+                  type="button"
+                  className="btn btn-small btn-quiet"
+                  onClick={() => setPlates((entry.sets.find((s) => !s.done) ?? entry.sets.at(-1))?.weight ?? 0)}
+                >
+                  Talerze
+                </button>
+              )}
             </div>
           </section>
         );
@@ -233,6 +249,7 @@ export function ActiveWorkout({ workout, onFinished }: { workout: Workout; onFin
         )}
       </p>
 
+      <PlateCalculator open={plates !== null} onClose={() => setPlates(null)} initialWeight={plates ?? 0} />
       <Sheet open={kindTarget !== null} onClose={() => setKindTarget(null)} title="Rodzaj serii">
         <ul className="list">
           {SET_KINDS.map((kind) => {

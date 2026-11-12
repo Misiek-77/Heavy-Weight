@@ -1,6 +1,7 @@
 import { guideFor } from '../domain/guides';
 import { ILLUSTRATED } from './illustrated';
 import { MuscleMap } from './MuscleMap';
+import { PoseAnimation } from './PoseAnimation';
 
 /** Illustration (where one exists), muscle map, worked muscles, steps and common mistakes for a built-in exercise. Renders nothing for custom ones. */
 export function ExerciseGuide({ exerciseId, name }: { exerciseId: string; name: string }) {
@@ -11,12 +12,8 @@ export function ExerciseGuide({ exerciseId, name }: { exerciseId: string; name: 
   return (
     <div className="guide">
       {ILLUSTRATED.has(key) && (
-        <img
-          className="guide-image"
+        <PoseAnimation
           src={`${import.meta.env.BASE_URL}exercises/${key}.jpg`}
-          width={960}
-          height={717}
-          loading="lazy"
           alt={`${name}: pozycja początkowa i końcowa, pracujące mięśnie zaznaczone na zielono.`}
         />
       )}

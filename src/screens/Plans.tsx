@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { newId } from '../domain/id';
+import { PLAN_TEMPLATES, plansFromTemplate } from '../domain/templates';
 import type { Plan, PlanItem } from '../domain/types';
 import { useStore } from '../state/store';
 import { Header } from '../ui/Chrome';
@@ -11,7 +12,7 @@ import { Icon } from '../ui/Icon';
 import { Confirm } from '../ui/Sheet';
 
 export function PlansScreen() {
-  const { plans } = useStore();
+  const { plans, savePlan } = useStore();
   return (
     <main className="screen">
       <Header>
@@ -55,6 +56,39 @@ export function PlansScreen() {
           Nowy plan
         </Link>
       </div>
+
+      <section className="section">
+        <h2 className="label">Gotowe plany</h2>
+        <ul className="list">
+          {PLAN_TEMPLATES.map((template) => {
+            const missing = plansFromTemplate(template, plans, new Date().toISOString());
+            return (
+              <li key={template.id}>
+                <div className="item">
+                  <span className="item-main">
+                    <span className="item-title">{template.name}</span>
+                    <span className="item-sub" style={{ display: 'block' }}>
+                      {template.description}
+                    </span>
+                    <span className="item-sub" style={{ display: 'block' }}>
+                      {template.plans.map((p) => p.name).join(' · ')}
+                    </span>
+                  </span>
+                  <button
+                    type="button"
+                    className="btn btn-small"
+                    disabled={missing.length === 0}
+                    aria-label={`Dodaj plany: ${template.name}`}
+                    onClick={() => missing.forEach(savePlan)}
+                  >
+                    {missing.length === 0 ? 'Dodane' : 'Dodaj'}
+                  </button>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
     </main>
   );
 }
