@@ -11,9 +11,11 @@ import { plural } from '../ui/format';
 import { Icon } from '../ui/Icon';
 import { NumberField } from '../ui/NumberField';
 import { Confirm } from '../ui/Sheet';
+import { PlanWizard, WeekSchedule } from './PlanTools';
 
 export function PlansScreen() {
   const { plans, savePlan } = useStore();
+  const [wizard, setWizard] = useState(false);
   return (
     <main className="screen">
       <Header>
@@ -56,7 +58,13 @@ export function PlansScreen() {
           <Icon name="plus" />
           Nowy plan
         </Link>
+        <button type="button" className="btn btn-block" style={{ marginTop: 10 }} onClick={() => setWizard(true)}>
+          Kreator planu
+        </button>
       </div>
+
+      <WeekSchedule />
+      <PlanWizard open={wizard} onClose={() => setWizard(false)} />
 
       <section className="section">
         <h2 className="label">Gotowe plany</h2>

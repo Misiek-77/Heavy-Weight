@@ -107,9 +107,25 @@ export interface Settings {
   restSeconds: number;
   /** Play a short signal when the rest ends. */
   restSound: boolean;
+  /** Plan id for each weekday from Monday; null on rest days. */
+  schedule: (string | null)[];
+  /** Unit weights are shown and typed in. Everything is stored in kilograms. */
+  unit: WeightUnit;
+  /** When the last backup file was exported. */
+  lastBackupAt?: string;
+  /** The backup reminder stays hidden until this moment. */
+  backupSnoozedUntil?: string;
 }
 
-export const DEFAULT_SETTINGS: Settings = { restSeconds: 90, restSound: true };
+export const WEIGHT_UNITS = ['kg', 'lb'] as const;
+export type WeightUnit = (typeof WEIGHT_UNITS)[number];
+
+export const DEFAULT_SETTINGS: Settings = {
+  restSeconds: 90,
+  restSound: true,
+  schedule: [null, null, null, null, null, null, null],
+  unit: 'kg',
+};
 
 export interface AppData {
   exercises: Exercise[];

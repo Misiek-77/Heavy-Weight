@@ -3,6 +3,7 @@ import {
   MEASURES,
   MUSCLE_GROUPS,
   SET_KINDS,
+  WEIGHT_UNITS,
   type AppData,
   type Exercise,
   type Goal,
@@ -157,10 +158,14 @@ export function parseBackup(text: string): BackupResult {
       isObject(d.settings) && isAmount(d.settings.restSeconds) && d.settings.restSeconds > 0,
       'Plik zawiera niepoprawny czas przerwy.',
     );
+    const settings = d.settings;
+    const restSeconds = d.settings.restSeconds;
     const exercises = d.exercises.map(exercise);
     const ids = new Set(exercises.map((e) => e.id));
     check(ids.size === exercises.length, 'Plik zawiera zduplikowane ćwiczenia.');
     const workouts = d.workouts.map((w) => workout(w, ids));
+    const plans = d.plans.map(plan);
+    const planIds = new Set(plans.map((p) => p.id));
     check(workouts.filter((w) => !w.finishedAt).length <= 1, 'Plik zawiera więcej niż jeden niezakończony trening.');
     // Backups made before body measurements existed simply have none.
     check(d.measurements === undefined || Array.isArray(d.measurements), 'Plik zawiera niepoprawne pomiary ciała.');
@@ -171,11 +176,21 @@ export function parseBackup(text: string): BackupResult {
       ok: true,
       data: {
         exercises,
-        plans: d.plans.map(plan),
+        plans,
         workouts,
         measurements,
         goals,
-        settings: { restSeconds: d.settings.restSeconds, restSound: d.settings.restSound !== false },
+        settings: {
+          restSeconds,
+          restSound: settings.restSound !== false,
+          // A schedule may point at plans that are not in the file; those days become rest days.
+          schedule: Array.from({ length: 7 }, (_, i) => {
+            const id = Array.isArray(settings.schedule) ? settings.schedule[i] : null;
+            return isText(id) && planIds.has(id) ? id : null;
+          }),
+          unit: (WEIGHT_UNITS as readonly unknown[]).includes(settings.unit) ? (settings.unit as (typeof WEIGHT_UNITS)[number]) : 'kg',
+          ...(isText(settings.lastBackupAt) ? { lastBackupAt: settings.lastBackupAt } : {}),
+        },
       },
     };
   } catch (e) {

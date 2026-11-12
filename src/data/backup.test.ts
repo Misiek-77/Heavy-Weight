@@ -33,7 +33,13 @@ const data: AppData = {
     { id: 'g1', kind: 'lift', exerciseId: SEED_EXERCISES[0].id, targetWeight: 100 },
     { id: 'g2', kind: 'frequency', perWeek: 3 },
   ],
-  settings: { restSeconds: 120, restSound: false },
+  settings: {
+    restSeconds: 120,
+    restSound: false,
+    schedule: [SEED_PLANS[0].id, null, null, null, null, null, null],
+    unit: 'lb',
+    lastBackupAt: '2026-02-01T08:00:00.000Z',
+  },
 };
 
 /** Serialized backup with one change applied to its parsed form. */

@@ -1378,3 +1378,30 @@ button.set-index {
   font-size: 14px;
   color: var(--muted);
 }
+
+/* ---------- week schedule, today's plan ---------- */
+
+.schedule {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+}
+
+.schedule label {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0;
+}
+
+.schedule-day.today {
+  font-weight: 650;
+}
+
+.today-plan {
+  margin-top: 6px;
+  font-size: 24px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { finishedWorkouts, workoutVolume } from '../domain/stats';
 import type { Plan, Workout } from '../domain/types';
+import { planForDay } from '../domain/wizard';
 import { createWorkout } from '../domain/workout';
 import { useStore } from '../state/store';
 import { Header } from '../ui/Chrome';
@@ -27,6 +28,8 @@ export function TrainingScreen() {
       createWorkout({ plan, name: plan?.name ?? 'Trening', now: new Date().toISOString(), history: store.workouts }),
     );
   const last = finishedWorkouts(store.workouts)[0];
+  const today = planForDay(store.settings.schedule, store.plans, new Date());
+  const scheduled = store.settings.schedule.some((id) => store.plans.some((p) => p.id === id));
 
   return (
     <main className="screen">
@@ -41,8 +44,35 @@ export function TrainingScreen() {
         {last && ` · ostatnio ${last.name}, ${formatDay(last.startedAt)}`}
       </p>
 
+      {today ? (
+        <section className="section today">
+          <h2 className="label">Dziś</h2>
+          <p className="today-plan">{today.name}</p>
+          <p className="muted small">
+            {plural(today.items.length, 'ćwiczenie', 'ćwiczenia', 'ćwiczeń')} ·{' '}
+            {plural(
+              today.items.reduce((n, i) => n + i.targetSets, 0),
+              'seria',
+              'serie',
+              'serii',
+            )}
+          </p>
+          <button type="button" className="btn btn-primary btn-block" style={{ marginTop: 12 }} onClick={() => start(today)}>
+            Rozpocznij: {today.name}
+          </button>
+        </section>
+      ) : (
+        scheduled && (
+          <section className="section today">
+            <h2 className="label">Dziś</h2>
+            <p className="today-plan">Odpoczynek</p>
+            <p className="muted small">Według harmonogramu dziś nie ma treningu. Możesz mimo to zacząć dowolny.</p>
+          </section>
+        )
+      )}
+
       <div className="section">
-        <button type="button" className="btn btn-primary btn-block" onClick={() => start()}>
+        <button type="button" className={today ? 'btn btn-block' : 'btn btn-primary btn-block'} onClick={() => start()}>
           <Icon name="plus" />
           Rozpocznij pusty trening
         </button>
