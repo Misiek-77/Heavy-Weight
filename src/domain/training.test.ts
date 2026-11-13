@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { exerciseRecords, liveRecord, newRecordExerciseIds, progressSeries, workoutVolume } from './stats';
 import type { Plan, Workout, WorkoutSet } from './types';
-import { addEntry, createWorkout, removeEntry, shouldIncrease, swapExercise, toggleLink, updateSet } from './workout';
+import { addEntry, addSet, createWorkout, finishWorkout, removeEntry, shouldIncrease, swapExercise, toggleLink, updateSet } from './workout';
 
 const NOW = '2026-02-01T10:00:00.000Z';
 const set = (weight: number, reps: number, done = true): WorkoutSet => ({ weight, reps, done });
@@ -33,6 +33,41 @@ describe('rep range progression', () => {
     expect(start(plan([{ exerciseId: 'bench', targetSets: 2, repMin: 8, repMax: 10 }]), short).entries[0].sets[0]).toEqual(set(80, 10, false));
     expect(start(plan([{ exerciseId: 'bench', targetSets: 1 }]), history).entries[0].sets[0].weight).toBe(40);
     expect(shouldIncrease([], 10)).toBe(false);
+  });
+});
+
+describe('adding a set after a weight increase', () => {
+  const history = [finished('a', '10', 'bench', [set(80, 10), set(80, 10), set(80, 10)])];
+
+  it('follows the set above instead of last time\'s lighter set', () => {
+    const w = addSet(start(plan([{ exerciseId: 'bench', targetSets: 2, repMin: 8, repMax: 10 }]), history), 0, history);
+    expect(w.entries[0].sets.map((s) => [s.weight, s.reps])).toEqual([[82.5, 8], [82.5, 8], [82.5, 8]]);
+  });
+
+  it('still uses last time when there was no increase', () => {
+    const w = addSet(start(plan([{ exerciseId: 'bench', targetSets: 1 }]), history), 0, history);
+    expect(w.entries[0].sets[1]).toEqual(set(80, 10, false));
+  });
+});
+
+describe('finishing a workout with supersets', () => {
+  const p = plan([
+    { exerciseId: 'a', targetSets: 1, linkNext: true },
+    { exerciseId: 'b', targetSets: 1, linkNext: true },
+    { exerciseId: 'c', targetSets: 1 },
+  ]);
+  const done = (w: Workout, ...indexes: number[]) => indexes.reduce((x, i) => updateSet(x, i, 0, { reps: 5, done: true }), w);
+  const links = (w: Workout | null) => w?.entries.map((e) => [e.exerciseId, !!e.linkNext]);
+
+  it('keeps links between exercises that were both done', () => {
+    expect(links(finishWorkout(done(start(p), 0, 1, 2), NOW))).toEqual([['a', true], ['b', true], ['c', false]]);
+  });
+  it('bridges a skipped exercise in the middle', () => {
+    expect(links(finishWorkout(done(start(p), 0, 2), NOW))).toEqual([['a', true], ['c', false]]);
+  });
+  it('never leaves a link on the last exercise', () => {
+    expect(links(finishWorkout(done(start(p), 0, 1), NOW))).toEqual([['a', true], ['b', false]]);
+    expect(links(finishWorkout(done(start(p), 0), NOW))).toEqual([['a', false]]);
   });
 });
 

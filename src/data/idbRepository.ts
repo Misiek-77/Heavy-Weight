@@ -28,6 +28,13 @@ export function createIdbRepository(): Repository {
   let dbPromise: Promise<IDBPDatabase<Schema>> | undefined;
   const db = () =>
     (dbPromise ??= openDB<Schema>('trening', 3, {
+      // Another tab opened a newer version of the app and needs to upgrade the database. Holding the
+      // connection would leave that tab stuck on a blank screen, so this one lets go and reloads itself.
+      blocking(_current, _blocked, event) {
+        (event.target as IDBDatabase).close();
+        dbPromise = undefined;
+        if (typeof location !== 'undefined') location.reload();
+      },
       upgrade(database, oldVersion) {
         if (oldVersion < 1) {
           database.createObjectStore('exercises', { keyPath: 'id' });

@@ -21,6 +21,8 @@ export function useRestTimer(): RestTimer {
 
 /** Two short beeps. Needs an AudioContext unlocked by an earlier tap, which starting a rest provides. */
 function beep(audio: AudioContext) {
+  // Browsers suspend an idle context; scheduling on a suspended one plays nothing.
+  void audio.resume();
   for (const at of [0, 0.22]) {
     const osc = audio.createOscillator();
     const gain = audio.createGain();

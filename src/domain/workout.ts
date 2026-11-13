@@ -111,8 +111,10 @@ export function swapExercise(w: Workout, entryIndex: number, exerciseId: string,
  */
 export function addSet(w: Workout, entryIndex: number, history: Workout[] = []): Workout {
   return mapEntry(w, entryIndex, (e) => {
-    const previous = lastPerformance(history, e.exerciseId)[e.sets.length];
+    const last = lastPerformance(history, e.exerciseId);
     const above = e.sets.at(-1);
+    // After a weight increase the old numbers no longer apply: the new set follows the one above it.
+    const previous = shouldIncrease(last, e.repMax) ? undefined : last[e.sets.length];
     const next: WorkoutSet = previous
       ? prefilledSets([previous], 1)[0]
       : above
@@ -142,10 +144,25 @@ const cleanNote = (note: string | undefined) => (note?.trim() ? { note: note.tri
 
 /** Keeps only done sets and non-empty notes. Returns null when there is nothing worth saving. */
 export function finishWorkout(w: Workout, finishedAt: string): Workout | null {
-  const entries = w.entries
-    .map(({ note, ...e }) => ({ ...e, sets: e.sets.filter((s) => s.done), ...cleanNote(note) }))
-    .filter((e) => e.sets.length > 0);
+  const entries: WorkoutEntry[] = [];
+  // Set while walking over exercises that are dropped, so a superset link survives a skipped exercise in between.
+  let carriedLink = false;
+  for (const { note, ...e } of w.entries) {
+    const sets = e.sets.filter((s) => s.done);
+    if (sets.length === 0) {
+      const before = entries.at(-1);
+      // The exercise before pointed at this one; it now points at whatever this one pointed at.
+      if (before?.linkNext && !carriedLink) before.linkNext = e.linkNext;
+      carriedLink = !!e.linkNext;
+      continue;
+    }
+    carriedLink = false;
+    entries.push({ ...e, sets, ...cleanNote(note) });
+  }
   if (entries.length === 0) return null;
+  // Nothing follows the last exercise, so it cannot be the first half of a superset.
+  const lastEntry = entries[entries.length - 1];
+  if (lastEntry.linkNext) lastEntry.linkNext = undefined;
   const { note, ...rest } = w;
   return { ...rest, ...cleanNote(note), entries, finishedAt, updatedAt: finishedAt };
 }

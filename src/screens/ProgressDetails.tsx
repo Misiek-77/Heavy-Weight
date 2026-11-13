@@ -203,9 +203,13 @@ export function PhotosScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // One object URL per photo for as long as the list is on screen.
-  const urls = useMemo(() => new Map((photos ?? []).map((p) => [p.id, URL.createObjectURL(p.image)])), [photos]);
-  useEffect(() => () => urls.forEach((url) => URL.revokeObjectURL(url)), [urls]);
+  // One object URL per photo, created and revoked by the same effect so they never outlive or predate each other.
+  const [urls, setUrls] = useState<Map<string, string>>(() => new Map());
+  useEffect(() => {
+    const next = new Map((photos ?? []).map((p) => [p.id, URL.createObjectURL(p.image)]));
+    setUrls(next);
+    return () => next.forEach((url) => URL.revokeObjectURL(url));
+  }, [photos]);
 
   async function add(file: File | undefined) {
     if (!file || !date) return;

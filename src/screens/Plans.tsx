@@ -208,9 +208,9 @@ function PlanForm({ existing }: { existing?: Plan }) {
                       </span>
                     </div>
                     <div className="range" role="group" aria-label={`${exercise}: zakres ${store.timedIds.has(item.exerciseId) ? 'sekund' : 'powtórzeń'}`}>
-                      <NumberField integer label="Od" value={item.repMin ?? 0} onChange={(repMin) => patch(index, { repMin: repMin || undefined })} />
+                      <NumberField integer label={`${exercise}: od`} value={item.repMin ?? 0} onChange={(repMin) => patch(index, { repMin: repMin || undefined })} />
                       <span aria-hidden="true">–</span>
-                      <NumberField integer label="Do" value={item.repMax ?? 0} onChange={(repMax) => patch(index, { repMax: repMax || undefined })} />
+                      <NumberField integer label={`${exercise}: do`} value={item.repMax ?? 0} onChange={(repMax) => patch(index, { repMax: repMax || undefined })} />
                       <span className="muted small">{store.timedIds.has(item.exerciseId) ? 's' : 'powt.'}</span>
                     </div>
                     <span className="spacer" style={{ flex: 1 }} />

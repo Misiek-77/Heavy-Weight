@@ -23,8 +23,8 @@ export interface PeriodTotals {
   volume: number;
 }
 
-function totals(workouts: Workout[], from: Date, timedIds: ReadonlySet<string>, to?: Date): PeriodTotals {
-  const inPeriod = workouts.filter((w) => startedOn(w) >= from && (!to || startedOn(w) < to));
+function totals(workouts: Workout[], from: Date, timedIds: ReadonlySet<string>): PeriodTotals {
+  const inPeriod = workouts.filter((w) => startedOn(w) >= from);
   return { workouts: inPeriod.length, volume: inPeriod.reduce((sum, w) => sum + workoutVolume(w, timedIds), 0) };
 }
 

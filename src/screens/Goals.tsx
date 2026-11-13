@@ -90,6 +90,7 @@ function GoalForm({ onDone }: { onDone(): void }) {
   const valid = kind === 'frequency' ? perWeek > 0 : exerciseId !== null && targetWeight > 0;
 
   return (
+    <>
     <form
       className="stack"
       onSubmit={(e) => {
@@ -138,7 +139,8 @@ function GoalForm({ onDone }: { onDone(): void }) {
       <button type="submit" className="btn btn-primary btn-block" disabled={!valid}>
         Zapisz cel
       </button>
-      <ExercisePicker open={picking} onClose={() => setPicking(false)} title="Ćwiczenie dla celu" onPick={setExerciseId} />
     </form>
+      <ExercisePicker open={picking} onClose={() => setPicking(false)} title="Ćwiczenie dla celu" onPick={setExerciseId} />
+    </>
   );
 }

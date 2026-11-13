@@ -50,7 +50,14 @@ export function Sheet({ open, onClose, title, children }: SheetProps) {
   }, []);
 
   return (
-    <dialog ref={ref} className="sheet" aria-labelledby={titleId} onClose={onClose} {...{ closedby: 'any' }}>
+    <dialog
+      ref={ref}
+      className="sheet"
+      aria-labelledby={titleId}
+      // React bubbles `close` up its tree, so a sheet opened from inside this one would close both.
+      onClose={(e) => e.target === e.currentTarget && onClose()}
+      {...{ closedby: 'any' }}
+    >
       {open && (
         <>
           <div className="sheet-head">

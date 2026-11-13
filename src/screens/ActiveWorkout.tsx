@@ -29,14 +29,18 @@ import { Confirm, Sheet } from '../ui/Sheet';
 import { useWakeLock } from '../ui/useWakeLock';
 import type { WorkoutSummary } from './TrainingScreen';
 
-/** Seconds since `startedAt`, refreshed every second. */
-function useElapsedSeconds(startedAt: string): number {
+/** Time since the workout started. Its own component, so the tick redraws one line and not the whole screen. */
+function Clock({ startedAt }: { startedAt: string }) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, []);
-  return (now - Date.parse(startedAt)) / 1000;
+  return (
+    <p className="clock" role="timer" aria-label="Czas treningu">
+      {formatClock((now - Date.parse(startedAt)) / 1000)}
+    </p>
+  );
 }
 
 type Dialog = 'picker' | 'finish' | 'empty' | 'cancel' | null;
@@ -46,7 +50,6 @@ const RECORD_LABEL = { weight: 'Nowy rekord ciężaru', oneRepMax: 'Nowy rekord 
 export function ActiveWorkout({ workout, onFinished }: { workout: Workout; onFinished(summary: WorkoutSummary): void }) {
   const store = useStore();
   const rest = useRestTimer();
-  const elapsed = useElapsedSeconds(workout.startedAt);
   useWakeLock(true);
   const [dialog, setDialog] = useState<Dialog>(null);
   /** Exercise whose how-to sheet is open. */
@@ -67,6 +70,11 @@ export function ActiveWorkout({ workout, onFinished }: { workout: Workout; onFin
 
   const exercises = useMemo(() => new Map(store.exercises.map((e) => [e.id, e])), [store.exercises]);
   const history = useMemo(() => store.workouts.filter((w) => w.finishedAt), [store.workouts]);
+  const exerciseIds = workout.entries.map((e) => e.exerciseId).join('|');
+  const previousSets = useMemo(
+    () => new Map(exerciseIds.split('|').map((id) => [id, lastPerformance(history, id)])),
+    [history, exerciseIds],
+  );
   const save = store.saveWorkout;
   const hasOpenSets = workout.entries.some((e) => e.sets.some((s) => !s.done));
   const swapped = swapIndex === null ? undefined : exercises.get(workout.entries[swapIndex]?.exerciseId ?? '');
@@ -124,9 +132,7 @@ export function ActiveWorkout({ workout, onFinished }: { workout: Workout; onFin
         onChange={(e) => save({ ...workout, name: e.target.value })}
         onBlur={() => workout.name.trim() === '' && save({ ...workout, name: 'Trening' })}
       />
-      <p className="clock" role="timer" aria-label="Czas treningu">
-        {formatClock(elapsed)}
-      </p>
+      <Clock startedAt={workout.startedAt} />
       <NoteField
         label="Notatka do treningu"
         placeholder="Notatka do treningu"
@@ -139,7 +145,7 @@ export function ActiveWorkout({ workout, onFinished }: { workout: Workout; onFin
       {workout.entries.map((entry, entryIndex) => {
         const exercise = exercises.get(entry.exerciseId);
         const timed = exercise?.timed ?? false;
-        const previous = lastPerformance(history, entry.exerciseId);
+        const previous = previousSets.get(entry.exerciseId) ?? [];
         const name = store.exerciseName(entry.exerciseId);
         const range = formatRange(entry.repMin, entry.repMax, timed);
         const isLast = entryIndex === workout.entries.length - 1;
