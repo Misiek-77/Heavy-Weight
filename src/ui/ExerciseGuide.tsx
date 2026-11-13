@@ -1,5 +1,5 @@
 import { guideFor } from '../domain/guides';
-import { ILLUSTRATED } from './illustrated';
+import { ANIMATED, ILLUSTRATED } from './illustrated';
 import { MuscleMap } from './MuscleMap';
 import { PoseAnimation } from './PoseAnimation';
 
@@ -14,6 +14,7 @@ export function ExerciseGuide({ exerciseId, name }: { exerciseId: string; name: 
       {ILLUSTRATED.has(key) && (
         <PoseAnimation
           src={`${import.meta.env.BASE_URL}exercises/${key}.jpg`}
+          framesSrc={ANIMATED.has(key) ? `${import.meta.env.BASE_URL}exercises/frames/${key}.jpg` : undefined}
           alt={`${name}: pozycja początkowa i końcowa, pracujące mięśnie zaznaczone na zielono.`}
         />
       )}

@@ -1421,3 +1421,39 @@ button.set-index {
   gap: 8px;
   margin-top: 12px;
 }
+
+/* ---------- frame-by-frame pose animation ---------- */
+
+/* Four square frames in one row; the strip is shown one frame at a time and stepped there and back. */
+.pose-strip {
+  position: absolute;
+  inset: 0;
+  margin-inline: auto;
+  aspect-ratio: 1;
+  height: 100%;
+  background-image: var(--pose-image);
+  background-size: 400% 100%;
+  background-repeat: no-repeat;
+  animation: pose-steps 2.4s steps(1) infinite;
+}
+
+@keyframes pose-steps {
+  0% {
+    background-position: 0 0;
+  }
+  22% {
+    background-position: 33.333% 0;
+  }
+  36% {
+    background-position: 66.667% 0;
+  }
+  50% {
+    background-position: 100% 0;
+  }
+  72% {
+    background-position: 66.667% 0;
+  }
+  86% {
+    background-position: 33.333% 0;
+  }
+}

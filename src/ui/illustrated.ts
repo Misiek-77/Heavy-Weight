@@ -66,3 +66,6 @@ export const ILLUSTRATED: ReadonlySet<string> = new Set([
   'triceps-pushdown',
   'upright-row',
 ]);
+
+/** Those that also have a four-frame animation strip in public/exercises/frames. */
+export const ANIMATED: ReadonlySet<string> = new Set([]);
