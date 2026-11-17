@@ -32,10 +32,13 @@ const CELL_INSET = 0.03;
 /** Empty space kept around the drawing, as a share of its larger side. */
 const MARGIN = 0.06;
 
+/** Ids given to an option like `--top-row=a,b`. */
+const listOption = (name) =>
+  new Set((process.argv.find((a) => a.startsWith(`--${name}=`)) ?? '').slice(name.length + 3).split(',').filter(Boolean));
 /** `--top-row=a,b` reads those sheets as a 4 by 2 grid and uses only its top row. */
-const TOP_ROW = new Set(
-  (process.argv.find((a) => a.startsWith('--top-row=')) ?? '--top-row=').slice('--top-row='.length).split(',').filter(Boolean),
-);
+const TOP_ROW = listOption('top-row');
+/** `--one-row=a,b` reads those sheets as four frames in a single row. */
+const ONE_ROW = listOption('one-row');
 const [folder, ...only] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
 if (!folder) throw new Error('Usage: node scripts/import-frames.mjs <folder> [exercise-id ...]');
 
@@ -85,10 +88,12 @@ async function importOne(key) {
   const sheet = await Jimp.fromBuffer(readFileSync(join(folder, `trening-frames-${key}.jpg`)));
   toPaper(sheet);
   const { width, height } = sheet.bitmap;
-  // Usually a 2 by 2 grid. Some sheets came back as 4 by 2, where the top row alone is the whole movement.
-  const cols = TOP_ROW.has(key) ? 4 : 2;
+  // Usually a 2 by 2 grid. Some sheets came back as 4 by 2, where the top row alone is the whole movement,
+  // and some were made as a single row of four.
+  const cols = TOP_ROW.has(key) || ONE_ROW.has(key) ? 4 : 2;
+  const rows = ONE_ROW.has(key) ? 1 : 2;
   const cw = Math.floor(width / cols);
-  const ch = Math.floor(height / 2);
+  const ch = Math.floor(height / rows);
   const inset = { x: Math.round(cw * CELL_INSET), y: Math.round(ch * CELL_INSET) };
   // Reading order: left to right, top to bottom.
   const cells = [0, 1, 2, 3].map((n) => ({
