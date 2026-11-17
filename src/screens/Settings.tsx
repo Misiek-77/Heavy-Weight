@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { parseBackup, serializeBackup } from '../data/backup';
+import { historyCsv } from '../data/csv';
 import type { AppData } from '../domain/types';
 import { useStore } from '../state/store';
 import { WEIGHT_UNITS } from '../domain/types';
@@ -12,6 +13,18 @@ import { Confirm } from '../ui/Sheet';
 const REST_STEP = 15;
 const REST_MIN = 15;
 const REST_MAX = 600;
+
+/** Hands a file to the browser to save. */
+function download(blob: Blob, name: string) {
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = name;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  // Revoked later: Firefox and Safari start reading the file after the click returns.
+  setTimeout(() => URL.revokeObjectURL(link.href), 60_000);
+}
 
 type Message = { kind: 'ok' | 'error'; text: string } | null;
 
@@ -29,27 +42,28 @@ export function SettingsScreen() {
     { value: 'dark', label: 'Ciemny' },
   ];
 
+  const finishedCount = store.workouts.filter((w) => w.finishedAt).length;
+
   const setRest = (restSeconds: number) =>
     store.saveSettings({ ...store.settings, restSeconds: Math.min(REST_MAX, Math.max(REST_MIN, restSeconds)) });
 
   function exportData() {
     const { exercises, plans, workouts, measurements, goals, settings } = store;
     const now = new Date();
-    const blob = new Blob([serializeBackup({ exercises, plans, workouts, measurements, goals, settings }, now.toISOString())], {
-      type: 'application/json',
-    });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `trening-kopia-${now.toISOString().slice(0, 10)}.json`;
-    document.body.append(link);
-    link.click();
-    link.remove();
-    // Revoked later: Firefox and Safari start reading the file after the click returns.
-    setTimeout(() => URL.revokeObjectURL(link.href), 60_000);
+    download(
+      new Blob([serializeBackup({ exercises, plans, workouts, measurements, goals, settings }, now.toISOString())], { type: 'application/json' }),
+      `trening-kopia-${now.toISOString().slice(0, 10)}.json`,
+    );
     // Remembered so the backup reminder knows the data is safe for a while.
     const { backupSnoozedUntil: _snooze, ...rest } = settings;
     store.saveSettings({ ...rest, lastBackupAt: now.toISOString() });
     setMessage({ kind: 'ok', text: 'Kopia zapasowa została pobrana.' });
+  }
+
+  function exportCsv() {
+    const csv = historyCsv(store.workouts, store.exercises, store.settings.unit);
+    download(new Blob([csv], { type: 'text/csv;charset=utf-8' }), `trening-historia-${new Date().toISOString().slice(0, 10)}.csv`);
+    setMessage({ kind: 'ok', text: 'Historia została pobrana jako plik CSV.' });
   }
 
   async function readFile(file: File | undefined) {
@@ -171,6 +185,13 @@ export function SettingsScreen() {
             Importuj
           </button>
         </div>
+        <p className="muted small" style={{ margin: '16px 0 12px' }}>
+          Historię treningów możesz też pobrać jako arkusz (CSV) do Excela lub Arkuszy Google. To tylko odczyt, nie
+          zastępuje kopii zapasowej.
+        </p>
+        <button type="button" className="btn" disabled={finishedCount === 0} onClick={exportCsv}>
+          Pobierz historię (CSV)
+        </button>
         <input
           ref={fileInput}
           type="file"
