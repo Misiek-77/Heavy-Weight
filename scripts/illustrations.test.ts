@@ -2,7 +2,7 @@ import { existsSync, readdirSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { POSES } from './illustration-poses.mjs';
 import { SEED_EXERCISES } from '../src/domain/seed';
-import { ANIMATED, ILLUSTRATED } from '../src/ui/illustrated';
+import { ANIMATED, ILLUSTRATED, MUSCLE_CHARTS } from '../src/ui/illustrated';
 
 const seedKeys = SEED_EXERCISES.map((e) => e.id.slice('seed-'.length)).sort();
 
@@ -24,6 +24,16 @@ describe('exercise illustrations', () => {
       .sort();
     // If this fails, run: npm run illustrations -- --manifest
     expect([...ANIMATED].sort()).toEqual(files);
+  });
+
+  it('lists exactly the muscle charts present in public/exercises/muscles', () => {
+    const dir = 'public/exercises/muscles';
+    const files = (existsSync(dir) ? readdirSync(dir) : [])
+      .filter((f) => f.endsWith('.jpg'))
+      .map((f) => f.slice(0, -4))
+      .sort();
+    // If this fails, run: npm run illustrations -- --manifest
+    expect([...MUSCLE_CHARTS].sort()).toEqual(files);
   });
 
   it('has a pose description for every built-in exercise and nothing else', () => {

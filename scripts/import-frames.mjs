@@ -32,7 +32,11 @@ const CELL_INSET = 0.03;
 /** Empty space kept around the drawing, as a share of its larger side. */
 const MARGIN = 0.06;
 
-const [folder, ...only] = process.argv.slice(2);
+/** `--top-row=a,b` reads those sheets as a 4 by 2 grid and uses only its top row. */
+const TOP_ROW = new Set(
+  (process.argv.find((a) => a.startsWith('--top-row=')) ?? '--top-row=').slice('--top-row='.length).split(',').filter(Boolean),
+);
+const [folder, ...only] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
 if (!folder) throw new Error('Usage: node scripts/import-frames.mjs <folder> [exercise-id ...]');
 
 const median = (values) => values.sort((a, b) => a - b)[Math.floor(values.length / 2)];
@@ -81,13 +85,15 @@ async function importOne(key) {
   const sheet = await Jimp.fromBuffer(readFileSync(join(folder, `trening-frames-${key}.jpg`)));
   toPaper(sheet);
   const { width, height } = sheet.bitmap;
-  const cw = Math.floor(width / 2);
+  // Usually a 2 by 2 grid. Some sheets came back as 4 by 2, where the top row alone is the whole movement.
+  const cols = TOP_ROW.has(key) ? 4 : 2;
+  const cw = Math.floor(width / cols);
   const ch = Math.floor(height / 2);
   const inset = { x: Math.round(cw * CELL_INSET), y: Math.round(ch * CELL_INSET) };
-  // Reading order: top-left, top-right, bottom-left, bottom-right.
+  // Reading order: left to right, top to bottom.
   const cells = [0, 1, 2, 3].map((n) => ({
-    x: (n % 2) * cw + inset.x,
-    y: Math.floor(n / 2) * ch + inset.y,
+    x: (n % cols) * cw + inset.x,
+    y: Math.floor(n / cols) * ch + inset.y,
     w: cw - inset.x * 2,
     h: ch - inset.y * 2,
   }));

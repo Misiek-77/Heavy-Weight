@@ -3,6 +3,7 @@
  *
  *   node scripts/normalize-illustrations.mjs            all illustrations
  *   node scripts/normalize-illustrations.mjs squat      just these
+ *   node scripts/normalize-illustrations.mjs --muscles  the muscle charts in public/exercises/muscles
  *
  * The images come from different generator sessions, so their off-white backgrounds differ slightly
  * and some are darker overall. Each image is white-balanced so that its own background lands exactly
@@ -14,7 +15,8 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Jimp } from 'jimp';
 
-const DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'exercises');
+const MUSCLES = process.argv.includes('--muscles');
+const DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'exercises', ...(MUSCLES ? ['muscles'] : []));
 /** Must match the background the app draws behind illustrations (see `.guide-image` in app.css). */
 const PAPER = [247, 247, 243];
 /** Pixels this close to the paper colour after balancing are treated as background. */
@@ -55,7 +57,7 @@ async function normalize(file) {
   return bg;
 }
 
-const only = process.argv.slice(2);
+const only = process.argv.slice(2).filter((a) => a !== '--muscles');
 const files = readdirSync(DIR).filter((f) => f.endsWith('.jpg') && (only.length === 0 || only.includes(f.slice(0, -4))));
 for (const file of files) {
   const bg = await normalize(file);
