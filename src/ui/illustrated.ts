@@ -126,3 +126,6 @@ export const ANIMATED: ReadonlySet<string> = new Set([
   't-bar-row',
   'triceps-pushdown',
 ]);
+
+/** Those that have a muscle chart in public/exercises/muscles. */
+export const MUSCLE_CHARTS: ReadonlySet<string> = new Set([]);

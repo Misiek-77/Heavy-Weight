@@ -46,6 +46,12 @@ function writeManifest() {
     .map((f) => f.slice(0, -4))
     .filter((k) => keys.includes(k))
     .sort();
+  const musclesDir = join(OUT_DIR, 'muscles');
+  const muscles = (existsSync(musclesDir) ? readdirSync(musclesDir) : [])
+    .filter((f) => f.endsWith('.jpg'))
+    .map((f) => f.slice(0, -4))
+    .filter((k) => k in POSES)
+    .sort();
   const list = (items) => items.map((k) => `  '${k}',`).join('\n');
   const lines = list(keys);
   writeFileSync(
@@ -54,7 +60,9 @@ function writeManifest() {
       `/** Built-in exercises (id without the \`seed-\` prefix) that have an illustration in public/exercises. */\n` +
       `export const ILLUSTRATED: ReadonlySet<string> = new Set([\n${lines}\n]);\n\n` +
       `/** Those that also have a four-frame animation strip in public/exercises/frames. */\n` +
-      `export const ANIMATED: ReadonlySet<string> = new Set([${animated.length ? `\n${list(animated)}\n` : ''}]);\n`,
+      `export const ANIMATED: ReadonlySet<string> = new Set([${animated.length ? `\n${list(animated)}\n` : ''}]);\n\n` +
+      `/** Those that have a muscle chart in public/exercises/muscles. */\n` +
+      `export const MUSCLE_CHARTS: ReadonlySet<string> = new Set([${muscles.length ? `\n${list(muscles)}\n` : ''}]);\n`,
   );
   return keys.length;
 }

@@ -1,5 +1,5 @@
 import { guideFor } from '../domain/guides';
-import { ANIMATED, ILLUSTRATED } from './illustrated';
+import { ANIMATED, ILLUSTRATED, MUSCLE_CHARTS } from './illustrated';
 import { MuscleMap } from './MuscleMap';
 import { PoseAnimation } from './PoseAnimation';
 
@@ -20,7 +20,19 @@ export function ExerciseGuide({ exerciseId, name }: { exerciseId: string; name: 
       )}
 
       <h3 className="label">Pracujące mięśnie</h3>
-      <MuscleMap guide={guide} />
+      {MUSCLE_CHARTS.has(key) ? (
+        <img
+          className="guide-image muscle-chart"
+          src={`${import.meta.env.BASE_URL}exercises/muscles/${key}.jpg`}
+          width={960}
+          height={717}
+          loading="lazy"
+          // The tags below name the muscles, so the chart itself only needs a short description.
+          alt={`${name}: pracujące mięśnie zaznaczone na zielono, z przodu i z tyłu.`}
+        />
+      ) : (
+        <MuscleMap guide={guide} />
+      )}
       <ul className="tags">
         {guide.primary.map((m) => (
           <li key={m} className="tag primary">

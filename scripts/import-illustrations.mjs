@@ -7,20 +7,23 @@
  * the frame, pads it back to 4:3 and writes public/exercises/<exercise-id>.jpg. Then rebuilds the manifest.
  */
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Jimp } from 'jimp';
 import { POSES } from './illustration-poses.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const OUT_DIR = join(ROOT, 'public', 'exercises');
+/** `--muscles` imports muscle charts (trening-muscles-<id>.jpg) into public/exercises/muscles instead. */
+const MUSCLES = process.argv.includes('--muscles');
+const OUT_DIR = MUSCLES ? join(ROOT, 'public', 'exercises', 'muscles') : join(ROOT, 'public', 'exercises');
+const PREFIX = MUSCLES ? 'trening-muscles-' : 'trening-';
 const WIDTH = 960;
 const HEIGHT = 717;
 /** Empty space kept around the drawing, as a share of its larger side. */
 const MARGIN = 0.05;
 
-const [folder, ...only] = process.argv.slice(2);
+const [folder, ...only] = process.argv.slice(2).filter((a) => a !== '--muscles');
 if (!folder) throw new Error('Usage: node scripts/import-illustrations.mjs <folder> [exercise-id ...]');
 
 /** Bounding box of everything that differs clearly from the background colour in the top-left corner. */
@@ -44,7 +47,7 @@ function contentBox(image) {
 }
 
 async function importOne(key) {
-  const image = await Jimp.fromBuffer(readFileSync(join(folder, `trening-${key}.jpg`)));
+  const image = await Jimp.fromBuffer(readFileSync(join(folder, `${PREFIX}${key}.jpg`)));
   const box = contentBox(image);
   const background = image.getPixelColor(0, 0);
   const pad = Math.round(Math.max(box.w, box.h) * MARGIN);
@@ -61,8 +64,9 @@ async function importOne(key) {
   return Math.round(((box.w * box.h) / (image.width * image.height)) * 100);
 }
 
-const keys = (only.length ? only : readdirSync(folder).map((f) => /^trening-(.+)\.jpg$/.exec(f)?.[1])).filter(
-  (k) => k && k in POSES && existsSync(join(folder, `trening-${k}.jpg`)),
+mkdirSync(OUT_DIR, { recursive: true });
+const keys = (only.length ? only : readdirSync(folder).map((f) => (f.startsWith(PREFIX) ? /^(.+).jpg$/.exec(f.slice(PREFIX.length))?.[1] : undefined))).filter(
+  (k) => k && k in POSES && existsSync(join(folder, `${PREFIX}${k}.jpg`)),
 );
 for (const key of keys) console.log(`${key}: drawing covered ${await importOne(key)}% of the source`);
 execFileSync(process.execPath, [join(ROOT, 'scripts', 'generate-illustrations.mjs'), '--manifest'], { stdio: 'inherit' });
