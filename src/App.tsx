@@ -1,20 +1,26 @@
-import type { CSSProperties } from 'react';
+import { lazy, Suspense, type CSSProperties } from 'react';
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { ExerciseDetail, ExercisesScreen } from './screens/Exercises';
 import { HistoryScreen, WorkoutDetail } from './screens/History';
-import { PlanEditor, PlansScreen } from './screens/Plans';
-import { ProgressScreen } from './screens/Progress';
-import { CompareScreen, PhotosScreen, RecordsScreen } from './screens/ProgressDetails';
-import { SettingsScreen } from './screens/Settings';
 import { TrainingScreen } from './screens/TrainingScreen';
-import { useRestTimer } from './state/restTimer';
+import { useResting } from './state/restTimer';
 import { useStore } from './state/store';
 import { RestBar, TabBar } from './ui/Chrome';
 import { Icon } from './ui/Icon';
 
+// Screens not needed to log a workout load on first visit, so the app starts faster. The service worker
+// precaches their files, so they still open offline.
+const PlansScreen = lazy(() => import('./screens/Plans').then((m) => ({ default: m.PlansScreen })));
+const PlanEditor = lazy(() => import('./screens/Plans').then((m) => ({ default: m.PlanEditor })));
+const ProgressScreen = lazy(() => import('./screens/Progress').then((m) => ({ default: m.ProgressScreen })));
+const RecordsScreen = lazy(() => import('./screens/ProgressDetails').then((m) => ({ default: m.RecordsScreen })));
+const CompareScreen = lazy(() => import('./screens/ProgressDetails').then((m) => ({ default: m.CompareScreen })));
+const PhotosScreen = lazy(() => import('./screens/ProgressDetails').then((m) => ({ default: m.PhotosScreen })));
+const SettingsScreen = lazy(() => import('./screens/Settings').then((m) => ({ default: m.SettingsScreen })));
+
 export function App() {
   const { error, dismissError } = useStore();
-  const resting = useRestTimer().remaining !== null;
+  const resting = useResting();
   // Leaves room at the bottom of the page for the rest bar while it is showing.
   const style = { '--rest-space': resting ? '72px' : '0px' } as CSSProperties;
 
@@ -29,6 +35,7 @@ export function App() {
             </button>
           </div>
         )}
+        <Suspense fallback={<main className="screen" aria-busy="true" />}>
         <Routes>
           <Route path="/" element={<TrainingScreen />} />
           <Route path="/plany" element={<PlansScreen />} />
@@ -44,6 +51,7 @@ export function App() {
           <Route path="/ustawienia" element={<SettingsScreen />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </Suspense>
         <RestBar />
         <TabBar />
       </div>

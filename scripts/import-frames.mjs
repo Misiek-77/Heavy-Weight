@@ -155,4 +155,5 @@ for (const key of keys) {
     console.log(`${key}: SKIPPED, ${error.message}`);
   }
 }
+execFileSync(process.execPath, [join(ROOT, 'scripts', 'make-thumbnails.mjs'), ...keys], { stdio: 'inherit' });
 execFileSync(process.execPath, [join(ROOT, 'scripts', 'generate-illustrations.mjs'), '--manifest'], { stdio: 'inherit' });

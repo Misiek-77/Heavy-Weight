@@ -880,7 +880,7 @@ dialog.sheet::backdrop {
   display: block;
   width: 76px;
   height: auto;
-  aspect-ratio: 960 / 717;
+  aspect-ratio: 320 / 239;
   object-fit: cover;
   border-radius: 10px;
   border: 1px solid var(--line);
@@ -1456,4 +1456,14 @@ button.set-index {
   86% {
     background-position: 33.333% 0;
   }
+}
+
+/* ---------- history grouped by month ---------- */
+
+.history-month + .history-month {
+  margin-top: 24px;
+}
+
+.history-month .label::first-letter {
+  text-transform: uppercase;
 }

@@ -69,4 +69,5 @@ const keys = (only.length ? only : readdirSync(folder).map((f) => (f.startsWith(
   (k) => k && k in POSES && existsSync(join(folder, `${PREFIX}${k}.jpg`)),
 );
 for (const key of keys) console.log(`${key}: drawing covered ${await importOne(key)}% of the source`);
+if (!MUSCLES) execFileSync(process.execPath, [join(ROOT, 'scripts', 'make-thumbnails.mjs'), ...keys], { stdio: 'inherit' });
 execFileSync(process.execPath, [join(ROOT, 'scripts', 'generate-illustrations.mjs'), '--manifest'], { stdio: 'inherit' });

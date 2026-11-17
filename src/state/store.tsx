@@ -49,7 +49,8 @@ export function useStore(): Store {
 const upsert = <T extends { id: string }>(list: T[], item: T) =>
   list.some((x) => x.id === item.id) ? list.map((x) => (x.id === item.id ? item : x)) : [...list, item];
 
-const SAVE_ERROR = 'Nie udało się zapisać danych na urządzeniu. Zmiana zostanie zapisana przy następnej edycji.';
+const SAVE_ERROR =
+  'Nie udało się zapisać ostatniej zmiany na urządzeniu. Sprawdź, czy w pamięci telefonu jest wolne miejsce, i zrób kopię zapasową.';
 
 type LoadState = { status: 'loading' } | { status: 'failed' } | { status: 'ready'; data: AppData };
 
@@ -74,6 +75,9 @@ export function StoreProvider({ repository, children }: { repository: Repository
         data = { ...data, exercises: data.exercises.map((e) => fixed.find((x) => x.id === e.id) ?? e) };
       }
       if (!cancelled) setState({ status: 'ready', data });
+      // Everything lives only in this browser. Without this the browser may clear it when the device runs low on
+      // space; with it the data stays until the person removes it. Granted silently or refused, never asked twice.
+      void navigator.storage?.persist?.().catch(() => undefined);
     })().catch(() => {
       if (!cancelled) setState({ status: 'failed' });
     });

@@ -14,7 +14,7 @@ import {
   toggleLink,
   updateSet,
 } from '../domain/workout';
-import { useRestTimer } from '../state/restTimer';
+import { useRestControls } from '../state/restTimer';
 import { useStore } from '../state/store';
 import { ExercisePicker } from '../ui/ExerciseBrowser';
 import { ExerciseGuide } from '../ui/ExerciseGuide';
@@ -49,7 +49,7 @@ const RECORD_LABEL = { weight: 'Nowy rekord ciężaru', oneRepMax: 'Nowy rekord 
 
 export function ActiveWorkout({ workout, onFinished }: { workout: Workout; onFinished(summary: WorkoutSummary): void }) {
   const store = useStore();
-  const rest = useRestTimer();
+  const rest = useRestControls();
   useWakeLock(true);
   const [dialog, setDialog] = useState<Dialog>(null);
   /** Exercise whose how-to sheet is open. */

@@ -41,8 +41,11 @@ export function SettingsScreen() {
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = `trening-kopia-${now.toISOString().slice(0, 10)}.json`;
+    document.body.append(link);
     link.click();
-    URL.revokeObjectURL(link.href);
+    link.remove();
+    // Revoked later: Firefox and Safari start reading the file after the click returns.
+    setTimeout(() => URL.revokeObjectURL(link.href), 60_000);
     // Remembered so the backup reminder knows the data is safe for a while.
     const { backupSnoozedUntil: _snooze, ...rest } = settings;
     store.saveSettings({ ...rest, lastBackupAt: now.toISOString() });

@@ -64,6 +64,22 @@ export function createWorkout(opts: { plan?: Plan; name: string; now: string; hi
   };
 }
 
+/**
+ * A new workout made like a past one: the same exercises in the same order, as many sets as were done,
+ * the same rep targets and supersets. Numbers are prefilled from history as for a plan; notes stay behind.
+ */
+export function repeatWorkout(past: Workout, history: Workout[], now: string, step?: number): Workout {
+  const plan: Plan = {
+    id: past.planId ?? '',
+    name: past.name,
+    items: past.entries.map((e) => ({ exerciseId: e.exerciseId, targetSets: e.sets.length, ...targetsOf(e) })),
+    createdAt: now,
+    updatedAt: now,
+  };
+  const workout = createWorkout({ plan, name: past.name, now, history, step });
+  return { ...workout, planId: past.planId };
+}
+
 export function addEntry(w: Workout, exerciseId: string, history: Workout[]): Workout {
   const sets = prefilledSets(lastPerformance(history, exerciseId), 1);
   return withEntries(w, [...w.entries, { exerciseId, sets }]);
@@ -145,18 +161,15 @@ const cleanNote = (note: string | undefined) => (note?.trim() ? { note: note.tri
 /** Keeps only done sets and non-empty notes. Returns null when there is nothing worth saving. */
 export function finishWorkout(w: Workout, finishedAt: string): Workout | null {
   const entries: WorkoutEntry[] = [];
-  // Set while walking over exercises that are dropped, so a superset link survives a skipped exercise in between.
-  let carriedLink = false;
   for (const { note, ...e } of w.entries) {
     const sets = e.sets.filter((s) => s.done);
     if (sets.length === 0) {
+      // A link on the last kept exercise always points at the exercise being looked at. That one is dropped,
+      // so the kept exercise takes over its link: the superset goes on past it, or ends here.
       const before = entries.at(-1);
-      // The exercise before pointed at this one; it now points at whatever this one pointed at.
-      if (before?.linkNext && !carriedLink) before.linkNext = e.linkNext;
-      carriedLink = !!e.linkNext;
+      if (before?.linkNext) before.linkNext = e.linkNext;
       continue;
     }
-    carriedLink = false;
     entries.push({ ...e, sets, ...cleanNote(note) });
   }
   if (entries.length === 0) return null;

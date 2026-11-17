@@ -26,6 +26,12 @@ describe('exercise illustrations', () => {
     expect([...ANIMATED].sort()).toEqual(files);
   });
 
+  it('has a list thumbnail for every illustration', () => {
+    // If this fails, run: node scripts/make-thumbnails.mjs
+    const thumbs = new Set(existsSync('public/exercises/thumbs') ? readdirSync('public/exercises/thumbs') : []);
+    expect([...ILLUSTRATED].filter((k) => !thumbs.has(`${k}.jpg`))).toEqual([]);
+  });
+
   it('lists exactly the muscle charts present in public/exercises/muscles', () => {
     const dir = 'public/exercises/muscles';
     const files = (existsSync(dir) ? readdirSync(dir) : [])

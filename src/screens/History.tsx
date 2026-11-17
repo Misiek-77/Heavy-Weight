@@ -2,16 +2,30 @@ import { useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { finishedWorkouts, workoutVolume } from '../domain/stats';
 import type { Workout } from '../domain/types';
+import { repeatWorkout } from '../domain/workout';
 import { useStore } from '../state/store';
 import { Header } from '../ui/Chrome';
 import { ExerciseThumb } from '../ui/ExerciseThumb';
 import { SET_KIND_INFO } from '../ui/setKinds';
-import { formatDay, formatDuration, formatEntrySet, formatRange, formatVolume, plural, weightUnit } from '../ui/format';
+import { formatDay, formatDuration, formatEntrySet, formatRange, formatVolume, plural, weightStep, weightUnit } from '../ui/format';
 import { Icon } from '../ui/Icon';
 import { Confirm } from '../ui/Sheet';
 
 const durationOf = (w: Workout) => Date.parse(w.finishedAt ?? w.startedAt) - Date.parse(w.startedAt);
 const setCount = (w: Workout) => w.entries.reduce((n, e) => n + e.sets.length, 0);
+
+const monthFormat = new Intl.DateTimeFormat('pl-PL', { month: 'long', year: 'numeric' });
+
+/** Workouts (newest first) split into calendar months: "listopad 2026". */
+function byMonth(workouts: Workout[]): { label: string; workouts: Workout[] }[] {
+  const groups: { label: string; workouts: Workout[] }[] = [];
+  for (const w of workouts) {
+    const label = monthFormat.format(new Date(w.startedAt));
+    if (groups.at(-1)?.label === label) groups.at(-1)!.workouts.push(w);
+    else groups.push({ label, workouts: [w] });
+  }
+  return groups;
+}
 
 export function HistoryScreen() {
   const { workouts, timedIds } = useStore();
@@ -30,8 +44,13 @@ export function HistoryScreen() {
         {finished.length === 0 ? (
           <p className="empty">Zakończ pierwszy trening, żeby zobaczyć go w historii.</p>
         ) : (
+          byMonth(finished).map((group) => (
+          <section key={group.label} className="history-month">
+          <h2 className="label">
+            {group.label} · {plural(group.workouts.length, 'trening', 'treningi', 'treningów')}
+          </h2>
           <ul className="list">
-            {finished.map((w) => (
+            {group.workouts.map((w) => (
               <li key={w.id}>
                 <Link className="item" to={`/historia/${w.id}`}>
                   <span className="item-main">
@@ -47,6 +66,8 @@ export function HistoryScreen() {
               </li>
             ))}
           </ul>
+          </section>
+          ))
         )}
       </div>
     </main>
@@ -122,6 +143,25 @@ export function WorkoutDetail() {
           {entry.note && <p className="note-text">{entry.note}</p>}
         </section>
       ))}
+
+      <div className="section">
+        {store.activeWorkout ? (
+          <Link className="btn btn-block" to="/">
+            Masz trening w toku — wróć do niego
+          </Link>
+        ) : (
+          <button
+            type="button"
+            className="btn btn-primary btn-block"
+            onClick={() => {
+              store.saveWorkout(repeatWorkout(workout, store.workouts, new Date().toISOString(), weightStep()));
+              navigate('/');
+            }}
+          >
+            Powtórz ten trening
+          </button>
+        )}
+      </div>
 
       <Confirm
         open={confirming}

@@ -11,9 +11,9 @@ export function ExerciseThumb({ exerciseId, large }: { exerciseId: string; large
   return (
     <img
       className={className}
-      src={`${import.meta.env.BASE_URL}exercises/${key}.jpg`}
-      width={960}
-      height={717}
+      src={`${import.meta.env.BASE_URL}exercises/thumbs/${key}.jpg`}
+      width={320}
+      height={239}
       loading="lazy"
       decoding="async"
       alt=""

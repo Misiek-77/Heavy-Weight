@@ -1,22 +1,38 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
-export interface RestTimer {
-  /** Whole seconds left, or null when no rest is running. */
-  remaining: number | null;
-  /** Length of the current rest in seconds, including any added time. */
-  total: number;
+/** What starts and changes a rest. Stable for the life of the app, so using it never causes a redraw. */
+export interface RestControls {
   /** Starts a rest; with `sound` a short signal plays when it runs out. */
   start(seconds: number, sound?: boolean): void;
   add(deltaSeconds: number): void;
   stop(): void;
 }
 
-const RestTimerContext = createContext<RestTimer | null>(null);
+export interface RestTimer extends RestControls {
+  /** Whole seconds left, or null when no rest is running. */
+  remaining: number | null;
+  /** Length of the current rest in seconds, including any added time. */
+  total: number;
+}
 
+// Three contexts, so a component redraws only as often as the part it reads changes: the countdown every
+// second, whether a rest is running only when one starts or ends, the controls never.
+const ControlsContext = createContext<RestControls | null>(null);
+const RestingContext = createContext(false);
+const CountdownContext = createContext<{ remaining: number | null; total: number }>({ remaining: null, total: 0 });
+
+export function useRestControls(): RestControls {
+  const controls = useContext(ControlsContext);
+  if (!controls) throw new Error('useRestControls must be used inside <RestTimerProvider>');
+  return controls;
+}
+
+/** Whether a rest is running. */
+export const useResting = () => useContext(RestingContext);
+
+/** The countdown and the controls. Redraws every second while a rest runs, so keep it to small components. */
 export function useRestTimer(): RestTimer {
-  const timer = useContext(RestTimerContext);
-  if (!timer) throw new Error('useRestTimer must be used inside <RestTimerProvider>');
-  return timer;
+  return { ...useRestControls(), ...useContext(CountdownContext) };
 }
 
 /** Two short beeps. Needs an AudioContext unlocked by an earlier tap, which starting a rest provides. */
@@ -52,7 +68,8 @@ export function RestTimerProvider({ children }: { children: ReactNode }) {
         navigator.vibrate?.([200, 100, 200]);
         if (rest.sound && audio.current) beep(audio.current);
       } else {
-        setNow(t);
+        // Only when the shown second changes, so the countdown redraws once a second rather than on every tick.
+        setNow((prev) => (Math.ceil((rest.endsAt - prev) / 1000) === Math.ceil((rest.endsAt - t) / 1000) ? prev : t));
       }
     };
     tick();
@@ -78,16 +95,16 @@ export function RestTimerProvider({ children }: { children: ReactNode }) {
   }, []);
   const stop = useCallback(() => setRest(null), []);
 
-  const value = useMemo<RestTimer>(
-    () => ({
-      remaining: rest ? Math.max(0, Math.ceil((rest.endsAt - now) / 1000)) : null,
-      total: rest?.total ?? 0,
-      start,
-      add,
-      stop,
-    }),
-    [rest, now, start, add, stop],
-  );
+  const controls = useMemo<RestControls>(() => ({ start, add, stop }), [start, add, stop]);
+  const remaining = rest ? Math.max(0, Math.ceil((rest.endsAt - now) / 1000)) : null;
+  const total = rest?.total ?? 0;
+  const countdown = useMemo(() => ({ remaining, total }), [remaining, total]);
 
-  return <RestTimerContext.Provider value={value}>{children}</RestTimerContext.Provider>;
+  return (
+    <ControlsContext.Provider value={controls}>
+      <RestingContext.Provider value={rest !== null}>
+        <CountdownContext.Provider value={countdown}>{children}</CountdownContext.Provider>
+      </RestingContext.Provider>
+    </ControlsContext.Provider>
+  );
 }

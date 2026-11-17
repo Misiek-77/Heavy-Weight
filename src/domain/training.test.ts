@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { exerciseRecords, liveRecord, newRecordExerciseIds, progressSeries, workoutVolume } from './stats';
 import type { Plan, Workout, WorkoutSet } from './types';
-import { addEntry, addSet, createWorkout, finishWorkout, removeEntry, shouldIncrease, swapExercise, toggleLink, updateSet } from './workout';
+import { addEntry, addSet, createWorkout, finishWorkout, removeEntry, repeatWorkout, shouldIncrease, swapExercise, toggleLink, updateSet } from './workout';
 
 const NOW = '2026-02-01T10:00:00.000Z';
 const set = (weight: number, reps: number, done = true): WorkoutSet => ({ weight, reps, done });
@@ -64,6 +64,24 @@ describe('finishing a workout with supersets', () => {
   });
   it('bridges a skipped exercise in the middle', () => {
     expect(links(finishWorkout(done(start(p), 0, 2), NOW))).toEqual([['a', true], ['c', false]]);
+  });
+  it('does not link across two skipped exercises when the second one ended the superset', () => {
+    const four = plan([
+      { exerciseId: 'a', targetSets: 1, linkNext: true },
+      { exerciseId: 'b', targetSets: 1, linkNext: true },
+      { exerciseId: 'c', targetSets: 1 },
+      { exerciseId: 'd', targetSets: 1 },
+    ]);
+    expect(links(finishWorkout(done(start(four), 0, 3), NOW))).toEqual([['a', false], ['d', false]]);
+  });
+  it('bridges two skipped exercises inside one superset', () => {
+    const four = plan([
+      { exerciseId: 'a', targetSets: 1, linkNext: true },
+      { exerciseId: 'b', targetSets: 1, linkNext: true },
+      { exerciseId: 'c', targetSets: 1, linkNext: true },
+      { exerciseId: 'd', targetSets: 1 },
+    ]);
+    expect(links(finishWorkout(done(start(four), 0, 3), NOW))).toEqual([['a', true], ['d', false]]);
   });
   it('never leaves a link on the last exercise', () => {
     expect(links(finishWorkout(done(start(p), 0, 1), NOW))).toEqual([['a', true], ['b', false]]);
@@ -148,5 +166,38 @@ describe('timed exercises', () => {
     const now = finished('now', '20', 'plank', [set(0, 90)]);
     expect(newRecordExerciseIds(now, history, timed)).toEqual(['plank']);
     expect(newRecordExerciseIds(finished('now', '20', 'plank', [set(0, 30)]), history, timed)).toEqual([]);
+  });
+});
+
+describe('repeating a past workout', () => {
+  const past: Workout = {
+    id: 'old',
+    planId: 'p',
+    name: 'Góra A',
+    startedAt: '2026-01-10T10:00:00.000Z',
+    finishedAt: '2026-01-10T11:00:00.000Z',
+    updatedAt: '2026-01-10T11:00:00.000Z',
+    note: 'dobry dzień',
+    entries: [
+      { exerciseId: 'bench', repMin: 8, repMax: 10, linkNext: true, note: 'łokcie', sets: [{ ...set(40, 10), kind: 'warmup' }, set(80, 8), set(80, 8)] },
+      { exerciseId: 'row', sets: [set(60, 10)] },
+    ],
+  };
+
+  it('starts a new workout with the same exercises, set counts, targets and supersets', () => {
+    const w = repeatWorkout(past, [past], NOW);
+    expect(w.id).not.toBe(past.id);
+    expect(w).toMatchObject({ name: 'Góra A', planId: 'p', startedAt: NOW });
+    expect(w.finishedAt).toBeUndefined();
+    expect(w.note).toBeUndefined();
+    expect(w.entries.map((e) => [e.exerciseId, e.sets.length, e.repMin, e.repMax, !!e.linkNext, e.note])).toEqual([
+      ['bench', 3, 8, 10, true, undefined],
+      ['row', 1, undefined, undefined, false, undefined],
+    ]);
+  });
+
+  it('prefills from history and leaves every set to be done', () => {
+    const w = repeatWorkout(past, [past], NOW);
+    expect(w.entries[0].sets).toEqual([{ ...set(40, 10, false), kind: 'warmup' }, set(80, 8, false), set(80, 8, false)]);
   });
 });
