@@ -330,7 +330,7 @@ export function ActiveWorkout({ workout, onFinished }: { workout: Workout; onFin
                   </span>
                   <span className="item-main">
                     <span className="item-title">{SET_KIND_INFO[kind].label}</span>
-                    <span className="item-sub" style={{ display: 'block' }}>
+                    <span className="item-sub">
                       {SET_KIND_INFO[kind].hint}
                     </span>
                   </span>

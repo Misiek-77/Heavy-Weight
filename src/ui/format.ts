@@ -33,6 +33,9 @@ export const formatWeight = (kg: number) => number.format(displayWeight(kg));
 /** A total of kilograms moved, in the display unit and without decimals: "4 520". */
 export const formatVolume = (kg: number) => whole.format(toUnit(kg));
 
+/** "Nogi" from "nogi": first letter upper case. */
+export const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
 /** "4 520" */
 export const formatWhole = (n: number) => whole.format(n);
 

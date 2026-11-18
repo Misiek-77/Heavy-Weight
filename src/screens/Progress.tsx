@@ -6,14 +6,13 @@ import { MEASURES, type Measure, type Measurement } from '../domain/types';
 import { useStore } from '../state/store';
 import { Header } from '../ui/Chrome';
 import { GoalsSection } from './Goals';
-import { displayWeight, formatDay, formatNumber, formatVolume, fromUnit, plural, toUnit, weightUnit } from '../ui/format';
+import { displayWeight, formatDay, formatNumber, formatVolume, fromUnit, plural, toUnit, weightUnit, capitalize } from '../ui/format';
 import { Icon } from '../ui/Icon';
 import { LineChart } from '../ui/LineChart';
 import { MEASURE_INFO } from '../ui/measures';
 import { NumberField } from '../ui/NumberField';
 import { Confirm, Sheet } from '../ui/Sheet';
 
-const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const monthTitle = new Intl.DateTimeFormat('pl-PL', { month: 'long', year: 'numeric' });
 const WEEKDAYS = ['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'So', 'Nd'];
 /** How far back the muscle-group comparison looks. */
@@ -64,7 +63,7 @@ export function ProgressScreen() {
               <Link className="item" to={to}>
                 <span className="item-main">
                   <span className="item-title">{title}</span>
-                  <span className="item-sub" style={{ display: 'block' }}>
+                  <span className="item-sub">
                     {sub}
                   </span>
                 </span>
@@ -234,7 +233,7 @@ function BodyMeasurements({ now }: { now: Date }) {
               <div className="item">
                 <span className="item-main">
                   <span className="item-title">{formatDay(m.date)}</span>
-                  <span className="item-sub" style={{ display: 'block' }}>
+                  <span className="item-sub">
                     {MEASURES.filter((k) => m.values[k] !== undefined)
                       .map((k) => `${MEASURE_INFO[k].label} ${formatNumber(Math.round(shown(k, m.values[k]!) * 10) / 10)} ${unitOf(k)}`)
                       .join(' · ')}

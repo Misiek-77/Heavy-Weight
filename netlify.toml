@@ -1,0 +1,25 @@
+# For Netlify or a similar host that builds from the repository. Dragging the built `dist` folder onto
+# Netlify works too and needs none of this.
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "24"
+
+# The service worker and the page must always be checked for a newer version, or phones keep an old app.
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+# Built files have a content hash in their name, so they can be cached for good.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"

@@ -55,7 +55,7 @@ export function HistoryScreen() {
                 <Link className="item" to={`/historia/${w.id}`}>
                   <span className="item-main">
                     <span className="item-title">{w.name}</span>
-                    <span className="item-sub" style={{ display: 'block' }}>
+                    <span className="item-sub">
                       {formatDay(w.startedAt)} · {formatDuration(durationOf(w))} · {formatVolume(workoutVolume(w, timedIds))} {weightUnit()}
                     </span>
                   </span>

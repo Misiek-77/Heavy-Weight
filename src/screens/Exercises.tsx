@@ -5,7 +5,7 @@ import { useStore } from '../state/store';
 import { Header } from '../ui/Chrome';
 import { ExerciseBrowser, ExerciseForm } from '../ui/ExerciseBrowser';
 import { ExerciseGuide } from '../ui/ExerciseGuide';
-import { formatClock, formatDay, formatEntrySet, formatVolume, formatWeight, toUnit, weightUnit } from '../ui/format';
+import { capitalize, formatClock, formatDay, formatEntrySet, formatVolume, formatWeight, toUnit, weightUnit } from '../ui/format';
 import { Icon } from '../ui/Icon';
 import { LineChart } from '../ui/LineChart';
 import { Confirm } from '../ui/Sheet';
@@ -72,7 +72,7 @@ export function ExerciseDetail() {
       </Header>
       <h1 className="title">{exercise.name}</h1>
       <p className="subtitle">
-        {exercise.muscleGroup} · {exercise.equipment}
+        {capitalize(exercise.muscleGroup)} · {exercise.equipment}
         {exercise.archived && ' · zarchiwizowane'}
       </p>
 
@@ -162,7 +162,7 @@ export function ExerciseDetail() {
                   <Link className="item" to={`/historia/${w.id}`}>
                     <span className="item-main">
                       <span className="item-title">{formatDay(w.startedAt)}</span>
-                      <span className="item-sub" style={{ display: 'block' }}>
+                      <span className="item-sub">
                         {sets.map((s) => formatEntrySet(s, timed)).join(' · ')}
                       </span>
                     </span>

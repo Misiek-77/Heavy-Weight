@@ -115,7 +115,7 @@ export function TrainingScreen() {
                 <button type="button" className="item" onClick={() => start(plan)}>
                   <span className="item-main">
                     <span className="item-title">{plan.name}</span>
-                    <span className="item-sub" style={{ display: 'block' }}>
+                    <span className="item-sub">
                       {plural(plan.items.length, 'ćwiczenie', 'ćwiczenia', 'ćwiczeń')}
                     </span>
                   </span>

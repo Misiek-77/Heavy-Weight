@@ -36,7 +36,7 @@ export function PlansScreen() {
                 <Link className="item" to={`/plany/${plan.id}`}>
                   <span className="item-main">
                     <span className="item-title">{plan.name}</span>
-                    <span className="item-sub" style={{ display: 'block' }}>
+                    <span className="item-sub">
                       {plural(plan.items.length, 'ćwiczenie', 'ćwiczenia', 'ćwiczeń')} ·{' '}
                       {plural(
                         plan.items.reduce((n, i) => n + i.targetSets, 0),
@@ -76,10 +76,10 @@ export function PlansScreen() {
                 <div className="item">
                   <span className="item-main">
                     <span className="item-title">{template.name}</span>
-                    <span className="item-sub" style={{ display: 'block' }}>
+                    <span className="item-sub">
                       {template.description}
                     </span>
-                    <span className="item-sub" style={{ display: 'block' }}>
+                    <span className="item-sub">
                       {template.plans.map((p) => p.name).join(' · ')}
                     </span>
                   </span>

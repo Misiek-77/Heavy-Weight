@@ -2,7 +2,7 @@
 export function NoteField(props: { label: string; placeholder: string; value: string; onChange(value: string): void }) {
   return (
     <textarea
-      className="note"
+      className="note-field"
       rows={1}
       maxLength={500}
       aria-label={props.label}

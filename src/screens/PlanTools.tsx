@@ -112,7 +112,7 @@ function Wizard({ onDone }: { onDone(): void }) {
                 <div className="item" style={{ minHeight: 52 }}>
                   <span className="item-main">
                     <span className="item-title">{p.name}</span>
-                    <span className="item-sub" style={{ display: 'block' }}>
+                    <span className="item-sub">
                       {WEEKDAYS[weekday]} · {plural(p.items.length, 'ćwiczenie', 'ćwiczenia', 'ćwiczeń')}
                     </span>
                   </span>

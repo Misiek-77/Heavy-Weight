@@ -7,11 +7,10 @@ import { MUSCLE_GROUPS, type Photo } from '../domain/types';
 import { useStore } from '../state/store';
 import { Header } from '../ui/Chrome';
 import { ExerciseThumb } from '../ui/ExerciseThumb';
-import { formatDay, formatNumber, formatWeight, formatWhole, toUnit, weightUnit } from '../ui/format';
+import { formatDay, formatNumber, formatWeight, formatWhole, toUnit, weightUnit, capitalize } from '../ui/format';
 import { Icon } from '../ui/Icon';
 import { Confirm } from '../ui/Sheet';
 
-const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 /** Best results of every exercise, and the list of times a best was beaten. */
 export function RecordsScreen() {
@@ -45,7 +44,7 @@ export function RecordsScreen() {
                       <Link className="item" to={`/historia/${e.workoutId}`}>
                         <span className="item-main">
                           <span className="item-title">{store.exerciseName(e.exerciseId)}</span>
-                          <span className="item-sub" style={{ display: 'block' }}>
+                          <span className="item-sub">
                             {formatDay(e.date)} · {show(e.previous)} → {show(e.value)} {unit}
                           </span>
                         </span>
@@ -69,7 +68,7 @@ export function RecordsScreen() {
                     <ExerciseThumb exerciseId={exercise.id} />
                     <span className="item-main">
                       <span className="item-title">{exercise.name}</span>
-                      <span className="item-sub" style={{ display: 'block' }}>
+                      <span className="item-sub">
                         {exercise.timed
                           ? `${r.longest!.reps} s`
                           : `${formatWeight(r.maxWeight!.weight)} ${weightUnit()} × ${r.maxWeight!.reps} · 1RM ${formatWeight(Math.round(r.best1RM!.value * 10) / 10)} ${weightUnit()}`}

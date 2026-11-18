@@ -6,6 +6,7 @@
 
 html {
   -webkit-text-size-adjust: 100%;
+  touch-action: manipulation;
 }
 
 body {
@@ -242,6 +243,7 @@ a {
 }
 
 .item-sub {
+  display: block;
   color: var(--muted);
   font-size: 14px;
   margin-top: 2px;
@@ -928,7 +930,7 @@ button.set-index {
   font-size: 13px;
 }
 
-.note {
+.note-field {
   display: block;
   width: 100%;
   margin-top: 8px;
@@ -938,17 +940,18 @@ button.set-index {
   background: none;
   color: var(--ink);
   font: inherit;
-  font-size: 15px;
+  /* 16px or more: Safari on iPhone zooms the whole page into any smaller text field it focuses. */
+  font-size: 16px;
   resize: none;
   /* Grows with the text where supported; otherwise stays one line and scrolls. */
   field-sizing: content;
 }
 
-.note::placeholder {
+.note-field::placeholder {
   color: var(--muted);
 }
 
-.note:focus {
+.note-field:focus {
   outline: none;
   border-bottom-color: var(--line);
 }
@@ -993,11 +996,47 @@ button.set-index {
   display: none;
 }
 
+/* A checkbox drawn as an on/off switch, the control people expect for a setting on a phone. */
 .switch {
   flex: none;
-  width: 22px;
-  height: 22px;
-  accent-color: var(--accent);
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  width: 51px;
+  height: 31px;
+  margin: 0;
+  border-radius: 999px;
+  background: var(--line);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.switch::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 27px;
+  height: 27px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.3);
+  transition: transform 0.2s ease;
+}
+
+.switch:checked {
+  background: var(--accent);
+}
+
+.switch:checked::before {
+  transform: translateX(20px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .switch,
+  .switch::before {
+    transition: none;
+  }
 }
 
 /* ---------- progress screen ---------- */

@@ -3,11 +3,10 @@ import { newId } from '../domain/id';
 import { EQUIPMENT, MUSCLE_GROUPS, type Exercise, type MuscleGroup } from '../domain/types';
 import { useStore } from '../state/store';
 import { ExerciseThumb } from './ExerciseThumb';
-import { searchKey } from './format';
+import { searchKey, capitalize } from './format';
 import { Icon } from './Icon';
 import { Sheet } from './Sheet';
 
-const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 /** Searchable, filterable list of the exercises that are not archived. */
 export function ExerciseBrowser({ onSelect, filter }: { onSelect(exercise: Exercise): void; filter?(exercise: Exercise): boolean }) {
@@ -54,7 +53,7 @@ export function ExerciseBrowser({ onSelect, filter }: { onSelect(exercise: Exerc
                 <ExerciseThumb exerciseId={e.id} />
                 <span className="item-main">
                   <span className="item-title">{e.name}</span>
-                  <span className="item-sub" style={{ display: 'block' }}>
+                  <span className="item-sub">
                     {capitalize(e.muscleGroup)} · {e.equipment}
                     {e.custom && ' · własne'}
                   </span>

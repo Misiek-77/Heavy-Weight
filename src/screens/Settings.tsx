@@ -117,12 +117,11 @@ export function SettingsScreen() {
 
       <section className="section">
         <h2 className="label">Jednostki ciężaru</h2>
-        <div className="chips" role="group" aria-label="Jednostki ciężaru" style={{ marginTop: 10 }}>
+        <div className="segmented" role="group" aria-label="Jednostki ciężaru">
           {WEIGHT_UNITS.map((unit) => (
             <button
               key={unit}
               type="button"
-              className="chip"
               aria-pressed={store.settings.unit === unit}
               onClick={() => store.saveSettings({ ...store.settings, unit })}
             >
@@ -162,7 +161,7 @@ export function SettingsScreen() {
           </div>
         </div>
         <label className="item" style={{ minHeight: 0, padding: '14px 0 0' }}>
-          <span className="item-main muted small">Sygnał dźwiękowy po zakończeniu przerwy. Telefon dodatkowo zawibruje.</span>
+          <span className="item-main muted small">Sygnał dźwiękowy po zakończeniu przerwy. Na Androidzie telefon dodatkowo zawibruje.</span>
           <input
             type="checkbox"
             className="switch"
