@@ -226,3 +226,9 @@ export function reviseWorkout(edited: Workout, now: string): Workout | null {
   const revised = finishWorkout(kept, finishedAt);
   return revised && { ...revised, name: revised.name.trim() || 'Trening', updatedAt: now };
 }
+
+/** What each set is called in a list: "R" for a warm-up, otherwise the working sets counted from 1. */
+export function setLabels(sets: WorkoutSet[]): string[] {
+  let n = 0;
+  return sets.map((s) => (s.kind === 'warmup' ? 'R' : String(++n)));
+}

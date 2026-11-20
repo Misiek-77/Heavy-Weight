@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Workout } from './types';
-import { addWarmup, warmupSets } from './workout';
+import { addWarmup, setLabels, warmupSets } from './workout';
 
 const plain = (sets: { weight: number; reps: number }[]) => sets.map((s) => [s.weight, s.reps]);
 
@@ -51,5 +51,13 @@ describe('adding warm-up sets to an exercise', () => {
     expect(addWarmup(once, 0, { bar: 20, step: 2.5 })).toBe(once);
     const empty = { ...w, entries: [{ exerciseId: 'bench', sets: [{ weight: 0, reps: 0, done: false }] }] };
     expect(addWarmup(empty, 0, { bar: 20, step: 2.5 })).toBe(empty);
+  });
+});
+
+describe('set numbers', () => {
+  it('counts working sets from 1 and marks warm-ups', () => {
+    const sets = warmupSets(100, { bar: 20, step: 2.5 }).slice(0, 2);
+    const work = { weight: 100, reps: 5, done: false };
+    expect(setLabels([...sets, work, { ...work, kind: 'drop' as const }])).toEqual(['R', 'R', '1', '2']);
   });
 });

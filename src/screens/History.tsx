@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { finishedWorkouts, workoutVolume } from '../domain/stats';
 import type { Workout } from '../domain/types';
-import { removeEntry, removeSet, repeatWorkout, reviseWorkout, setEntryNote, updateSet } from '../domain/workout';
+import { removeEntry, removeSet, repeatWorkout, reviseWorkout, setEntryNote, setLabels, updateSet } from '../domain/workout';
 import { useStore } from '../state/store';
 import { Header } from '../ui/Chrome';
 import { ExerciseThumb } from '../ui/ExerciseThumb';
@@ -151,7 +151,7 @@ export function WorkoutDetail() {
           <dl className="set-list">
             {entry.sets.map((set, n) => (
               <div key={n} style={{ display: 'contents' }}>
-                <dt>{n + 1}</dt>
+                <dt>{setLabels(entry.sets)[n]}</dt>
                 <dd>
                   {formatEntrySet(set, store.timedIds.has(entry.exerciseId))}
                   {set.kind && set.kind !== 'normal' && <span className="kind-tag">{SET_KIND_INFO[set.kind].label}</span>}
@@ -257,7 +257,7 @@ function WorkoutEditor({ workout, onDone }: { workout: Workout; onDone(): void }
               </div>
               {entry.sets.map((set, setIndex) => (
                 <div className="set-row" key={setIndex}>
-                  <span className="set-index">{setIndex + 1}</span>
+                  <span className="set-index">{setLabels(entry.sets)[setIndex]}</span>
                   <span className="set-prev">{set.kind && set.kind !== 'normal' ? SET_KIND_INFO[set.kind].label : ''}</span>
                   <NumberField
                     label={`${name}, seria ${setIndex + 1}, ciężar w ${weightUnit()}`}

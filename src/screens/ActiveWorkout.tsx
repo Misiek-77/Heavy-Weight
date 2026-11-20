@@ -9,6 +9,7 @@ import {
   finishWorkout,
   removeEntry,
   removeSet,
+  setLabels,
   setEntryNote,
   shouldIncrease,
   swapExercise,
@@ -154,6 +155,7 @@ export function ActiveWorkout({ workout, onFinished }: { workout: Workout; onFin
         const name = store.exerciseName(entry.exerciseId);
         const range = formatRange(entry.repMin, entry.repMax, timed);
         const isLast = entryIndex === workout.entries.length - 1;
+        const labels = setLabels(entry.sets);
         return (
           <Fragment key={entryIndex}>
             <section className={entry.linkNext ? 'entry linked' : 'entry'}>
@@ -197,6 +199,7 @@ export function ActiveWorkout({ workout, onFinished }: { workout: Workout; onFin
                 </div>
                 {entry.sets.map((set, setIndex) => {
                   const prev = previous[setIndex];
+                  // Position, for field labels that must stay unique. What is shown counts working sets from 1.
                   const n = setIndex + 1;
                   return (
                     <div className={set.done ? 'set-row done' : 'set-row'} key={setIndex}>
@@ -206,7 +209,7 @@ export function ActiveWorkout({ workout, onFinished }: { workout: Workout; onFin
                         aria-label={`${name}, seria ${n}: rodzaj serii, teraz ${SET_KIND_INFO[set.kind ?? 'normal'].label.toLowerCase()}`}
                         onClick={() => setKindTarget({ entryIndex, setIndex })}
                       >
-                        {SET_KIND_INFO[set.kind ?? 'normal'].mark || n}
+                        {SET_KIND_INFO[set.kind ?? 'normal'].mark || labels[setIndex]}
                       </button>
                       <span className="set-prev">{prev ? formatEntrySet(prev, timed) : '—'}</span>
                       <NumberField
