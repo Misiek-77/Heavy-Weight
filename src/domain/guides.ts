@@ -158,7 +158,7 @@ const GUIDES: Record<string, ExerciseGuide> = {
     ['środek pleców', 'najszerszy grzbietu'],
     ['tylne barki', 'biceps', 'prostowniki grzbietu'],
     [
-      'Stań ze sztangą, ugnij lekko kolana i pochyl tułów z prostymi plecami.',
+      'Chwyć sztangę nachwytem, nieco szerzej niż barki. Ugnij lekko kolana i pochyl tułów z prostymi plecami.',
       'Przyciągnij sztangę do dolnej części brzucha, prowadząc łokcie blisko tułowia.',
       'Ściągnij łopatki w górze i opuść sztangę powoli.',
     ],
@@ -678,6 +678,178 @@ const GUIDES: Record<string, ExerciseGuide> = {
       'Pozwól mu opaść i ponownie cofnij biodra.',
     ],
     ['Przysiad zamiast zawiasu w biodrach.', 'Unoszenie ciężaru rękami.', 'Zaokrąglone plecy.', 'Przeprost w górze.'],
+  ),
+  // ---------- added November 2026 ----------
+  'underhand-barbell-row': g(
+    ['najszerszy grzbietu', 'środek pleców'],
+    [
+      'biceps',
+      'tylne barki',
+      'prostowniki grzbietu',
+    ],
+    [
+      'Chwyć sztangę podchwytem, na szerokość barków. Ugnij lekko kolana i pochyl tułów do około 45° z prostymi plecami.',
+      'Przyciągnij sztangę do pępka, prowadząc łokcie blisko tułowia i do tyłu.',
+      'Ściągnij łopatki w górze, a potem opuść sztangę powoli do wyprostu ramion.',
+    ],
+    [
+      'Zaokrąglone plecy.',
+      'Prostowanie tułowia przy każdym powtórzeniu.',
+      'Przyciąganie samymi bicepsami, bez pracy łopatek.',
+    ],
+  ),
+  'close-grip-pulldown': g(
+    ['najszerszy grzbietu'],
+    ['środek pleców', 'biceps'],
+    [
+      'Załóż uchwyt V (trójkąt) lub chwyć drążek wąsko. Usiądź, zablokuj uda pod wałkami.',
+      'Odchyl lekko tułów i ściągnij uchwyt do górnej części klatki, prowadząc łokcie w dół i do tyłu.',
+      'Zatrzymaj ruch na chwilę ze ściągniętymi łopatkami i wróć powoli do pełnego wyprostu ramion.',
+    ],
+    [
+      'Mocne odchylanie się do tyłu i szarpanie ciężaru.',
+      'Niepełny zakres w górze.',
+      'Unoszenie barków do uszu.',
+    ],
+  ),
+  'db-pullover': g(
+    ['najszerszy grzbietu'],
+    ['klatka piersiowa', 'triceps'],
+    [
+      'Połóż się na ławce, trzymając jedną hantlę oburącz nad klatką, łokcie lekko ugięte.',
+      'Opuść hantlę łukiem za głowę, aż poczujesz rozciąganie pod pachami. Kąt w łokciach się nie zmienia.',
+      'Wróć tym samym łukiem nad klatkę, napinając mięśnie pleców.',
+    ],
+    [
+      'Uginanie i prostowanie łokci, przez co pracuje triceps.',
+      'Zbyt głębokie opuszczenie, które obciąża barki.',
+      'Wyginanie lędźwi w łuk.',
+    ],
+  ),
+  'sumo-deadlift': g(
+    [
+      'pośladki',
+      'czworogłowe uda',
+      'prostowniki grzbietu',
+    ],
+    [
+      'tył ud',
+      'czworoboczny',
+      'przedramiona',
+    ],
+    [
+      'Stań szeroko, palce stóp skierowane na zewnątrz, sztanga nad środkiem stóp. Chwyć ją wąsko, między kolanami.',
+      'Wypchnij kolana na boki, opuść biodra, wyprostuj plecy i napnij brzuch.',
+      'Odepchnij podłogę nogami i prowadź sztangę blisko ciała, aż staniesz prosto.',
+      'Opuść sztangę, cofając biodra i uginając kolana, z prostymi plecami.',
+    ],
+    [
+      'Kolana uciekające do środka.',
+      'Zaokrąglone plecy.',
+      'Biodra unoszone szybciej niż barki.',
+    ],
+  ),
+  'good-morning': g(
+    ['tył ud', 'prostowniki grzbietu'],
+    ['pośladki'],
+    [
+      'Ułóż sztangę na górnej części pleców jak do przysiadu. Stopy na szerokość bioder, kolana lekko ugięte.',
+      'Cofając biodra, pochyl tułów z prostymi plecami, aż będzie prawie równoległy do podłogi lub poczujesz mocne rozciąganie tyłu ud.',
+      'Wróć do pozycji stojącej, wypychając biodra w przód.',
+    ],
+    [
+      'Zaokrąglone plecy.',
+      'Zbyt duży ciężar – to ćwiczenie robi się lekko i technicznie.',
+      'Uginanie kolan jak w przysiadzie.',
+    ],
+  ),
+  'reverse-pec-deck': g(
+    ['tylne barki'],
+    ['środek pleców', 'czworoboczny'],
+    [
+      'Usiądź przodem do oparcia maszyny, uchwyty ustaw na wysokości barków.',
+      'Chwyć uchwyty prawie prostymi rękami i odprowadź je szeroko na boki, aż ramiona znajdą się w linii z tułowiem.',
+      'Wróć powoli, nie pozwalając ciężarkom opaść.',
+    ],
+    [
+      'Ściąganie łopatek zamiast pracy tylnych barków.',
+      'Zbyt duży ciężar i szarpanie.',
+      'Unoszenie barków do uszu.',
+    ],
+  ),
+  'ez-bar-curl': g(
+    ['biceps'],
+    ['ramienno-promieniowy', 'przedramiona'],
+    [
+      'Stań prosto, chwyć sztangę łamaną za skośne części uchwytu, ramiona wzdłuż tułowia.',
+      'Ugnij ramiona, unosząc sztangę do barków. Łokcie zostają przy tułowiu.',
+      'Opuść sztangę powoli do pełnego wyprostu ramion.',
+    ],
+    [
+      'Bujanie tułowiem.',
+      'Wysuwanie łokci do przodu.',
+      'Niepełny wyprost w dole.',
+    ],
+  ),
+  'concentration-curl': g(
+    ['biceps'],
+    ['ramienno-promieniowy'],
+    [
+      'Usiądź na ławce w szerokim rozkroku. Oprzyj tył ramienia o wewnętrzną stronę uda, hantla zwisa w wyprostowanej ręce.',
+      'Ugnij ramię, unosząc hantlę do barku. Ramię pozostaje oparte o udo.',
+      'Napnij biceps w górze i opuść hantlę powoli do wyprostu.',
+    ],
+    [
+      'Odrywanie ramienia od uda.',
+      'Pomaganie sobie tułowiem.',
+      'Zbyt szybkie opuszczanie.',
+    ],
+  ),
+  'cable-hammer-curl': g(
+    ['ramienno-promieniowy', 'biceps'],
+    ['przedramiona'],
+    [
+      'Załóż linę na dolny wyciąg. Stań przodem do wyciągu i chwyć końce liny chwytem neutralnym (kciuki w górę).',
+      'Ugnij ramiona, przyciągając linę do barków. Łokcie zostają przy tułowiu.',
+      'Opuść linę powoli do pełnego wyprostu ramion.',
+    ],
+    [
+      'Wysuwanie łokci do przodu.',
+      'Odchylanie się do tyłu.',
+      'Skracanie ruchu w dole.',
+    ],
+  ),
+  'triceps-kickback': g(
+    ['triceps'],
+    ['tylne barki'],
+    [
+      'Oprzyj kolano i dłoń o ławkę, tułów równolegle do podłogi. Ramię z hantlą przy tułowiu, łokieć ugięty pod kątem prostym.',
+      'Wyprostuj ramię w łokciu do tyłu, aż cała ręka będzie w linii z tułowiem.',
+      'Wróć powoli do kąta prostego. Ramię przez cały czas pozostaje nieruchome.',
+    ],
+    [
+      'Opuszczanie łokcia w trakcie ruchu.',
+      'Machanie hantlą z rozpędu.',
+      'Zbyt duży ciężar.',
+    ],
+  ),
+  'side-plank': g(
+    ['skośne brzucha'],
+    [
+      'brzuch',
+      'pośladki',
+      'barki',
+    ],
+    [
+      'Połóż się na boku, oprzyj się na przedramieniu, łokieć dokładnie pod barkiem, nogi wyprostowane jedna na drugiej.',
+      'Unieś biodra, aż ciało utworzy prostą linię od głowy do stóp.',
+      'Utrzymaj pozycję przez zadany czas, oddychając spokojnie. Potem zmień stronę.',
+    ],
+    [
+      'Opadające biodra.',
+      'Wypychanie bioder do tyłu.',
+      'Łokieć daleko od linii barku.',
+    ],
   ),
 };
 

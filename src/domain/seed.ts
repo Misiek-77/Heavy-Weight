@@ -17,9 +17,13 @@ const LIST: [id: string, name: string, muscleGroup: MuscleGroup, equipment: Equi
   ['deadlift', 'Martwy ciąg', 'plecy', 'sztanga'],
   ['pull-up', 'Podciąganie nachwytem', 'plecy', 'masa ciała'],
   ['chin-up', 'Podciąganie podchwytem', 'plecy', 'masa ciała'],
-  ['barbell-row', 'Wiosłowanie sztangą w opadzie', 'plecy', 'sztanga'],
+  ['barbell-row', 'Wiosłowanie sztangą w opadzie nachwytem', 'plecy', 'sztanga'],
+  ['underhand-barbell-row', 'Wiosłowanie sztangą w opadzie podchwytem', 'plecy', 'sztanga'],
   ['db-row', 'Wiosłowanie hantlą jednorącz', 'plecy', 'hantle'],
   ['lat-pulldown', 'Ściąganie drążka wyciągu górnego', 'plecy', 'wyciąg'],
+  ['close-grip-pulldown', 'Ściąganie drążka wąskim chwytem', 'plecy', 'wyciąg'],
+  ['db-pullover', 'Pullover z hantlą', 'plecy', 'hantle'],
+  ['sumo-deadlift', 'Martwy ciąg sumo', 'plecy', 'sztanga'],
   ['seated-cable-row', 'Przyciąganie uchwytu wyciągu dolnego', 'plecy', 'wyciąg'],
   ['t-bar-row', 'Wiosłowanie końcem sztangi', 'plecy', 'sztanga'],
   ['machine-row', 'Wiosłowanie na maszynie', 'plecy', 'maszyna'],
@@ -31,6 +35,7 @@ const LIST: [id: string, name: string, muscleGroup: MuscleGroup, equipment: Equi
   ['front-squat', 'Przysiad przedni', 'nogi', 'sztanga'],
   ['leg-press', 'Wypychanie na suwnicy', 'nogi', 'maszyna'],
   ['romanian-deadlift', 'Martwy ciąg rumuński', 'nogi', 'sztanga'],
+  ['good-morning', 'Skłony ze sztangą („dzień dobry”)', 'nogi', 'sztanga'],
   ['lunge', 'Wykroki z hantlami', 'nogi', 'hantle'],
   ['bulgarian-split-squat', 'Przysiad bułgarski', 'nogi', 'hantle'],
   ['goblet-squat', 'Przysiad goblet', 'nogi', 'hantle'],
@@ -48,10 +53,14 @@ const LIST: [id: string, name: string, muscleGroup: MuscleGroup, equipment: Equi
   ['cable-lateral-raise', 'Unoszenie ramienia bokiem na wyciągu', 'barki', 'wyciąg'],
   ['front-raise', 'Unoszenie hantli w przód', 'barki', 'hantle'],
   ['rear-delt-fly', 'Odwrotne rozpiętki', 'barki', 'hantle'],
+  ['reverse-pec-deck', 'Odwrotne rozpiętki na maszynie', 'barki', 'maszyna'],
   ['face-pull', 'Face pull', 'barki', 'wyciąg'],
   ['upright-row', 'Podciąganie sztangi wzdłuż tułowia', 'barki', 'sztanga'],
 
   ['barbell-curl', 'Uginanie ramion ze sztangą', 'biceps', 'sztanga'],
+  ['ez-bar-curl', 'Uginanie ramion ze sztangą łamaną', 'biceps', 'sztanga'],
+  ['concentration-curl', 'Uginanie koncentryczne', 'biceps', 'hantle'],
+  ['cable-hammer-curl', 'Uginanie młotkowe z liną na wyciągu', 'biceps', 'wyciąg'],
   ['db-curl', 'Uginanie ramion z hantlami', 'biceps', 'hantle'],
   ['hammer-curl', 'Uginanie młotkowe', 'biceps', 'hantle'],
   ['preacher-curl', 'Uginanie ramion na modlitewniku', 'biceps', 'sztanga'],
@@ -63,9 +72,11 @@ const LIST: [id: string, name: string, muscleGroup: MuscleGroup, equipment: Equi
   ['overhead-triceps-extension', 'Wyciskanie francuskie hantlą nad głową', 'triceps', 'hantle'],
   ['close-grip-bench-press', 'Wyciskanie sztangi wąskim chwytem', 'triceps', 'sztanga'],
   ['bench-dip', 'Pompki w podporze tyłem', 'triceps', 'masa ciała'],
+  ['triceps-kickback', 'Prostowanie ramienia w opadzie (kickback)', 'triceps', 'hantle'],
   ['rope-overhead-extension', 'Prostowanie ramion z liną nad głową', 'triceps', 'wyciąg'],
 
   ['plank', 'Deska', 'brzuch', 'masa ciała'],
+  ['side-plank', 'Deska boczna', 'brzuch', 'masa ciała'],
   ['crunch', 'Spięcia brzucha', 'brzuch', 'masa ciała'],
   ['hanging-leg-raise', 'Unoszenie nóg w zwisie', 'brzuch', 'masa ciała'],
   ['cable-crunch', 'Allahy na wyciągu', 'brzuch', 'wyciąg'],
@@ -77,7 +88,7 @@ const LIST: [id: string, name: string, muscleGroup: MuscleGroup, equipment: Equi
 ];
 
 /** Built-in exercises held for time instead of counted in repetitions. */
-export const TIMED_SEEDS: ReadonlySet<string> = new Set(['seed-plank', 'seed-farmer-walk']);
+export const TIMED_SEEDS: ReadonlySet<string> = new Set(['seed-plank', 'seed-side-plank', 'seed-farmer-walk']);
 
 export const SEED_EXERCISES: Exercise[] = LIST.map(([id, name, muscleGroup, equipment]) => ({
   id: `seed-${id}`,
@@ -125,3 +136,23 @@ export const SEED_PLANS: Plan[] = [
     ['standing-calf-raise', 4],
   ]),
 ];
+
+/** Names built-in exercises had before they were renamed, so an untouched old name can be updated. */
+const FORMER_NAMES: Record<string, string> = {
+  'seed-barbell-row': 'Wiosłowanie sztangą w opadzie',
+};
+
+/**
+ * Exercises to store so an older install has every current built-in exercise: the ones added since it was
+ * set up, and renamed ones still under their former name. Anything the person changed is left alone.
+ */
+export function seedUpdates(stored: Exercise[]): Exercise[] {
+  const byId = new Map(stored.map((e) => [e.id, e]));
+  const updates: Exercise[] = [];
+  for (const seed of SEED_EXERCISES) {
+    const current = byId.get(seed.id);
+    if (!current) updates.push(seed);
+    else if (FORMER_NAMES[seed.id] === current.name) updates.push({ ...current, name: seed.name });
+  }
+  return updates;
+}

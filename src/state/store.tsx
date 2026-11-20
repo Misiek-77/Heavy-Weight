@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { Repository } from '../data/repository';
 import { setWeightUnit } from '../ui/format';
-import { SEED_EXERCISES, SEED_PLANS, TIMED_SEEDS } from '../domain/seed';
+import { SEED_EXERCISES, SEED_PLANS, TIMED_SEEDS, seedUpdates } from '../domain/seed';
 import {
   DEFAULT_SETTINGS,
   type AppData,
@@ -73,6 +73,13 @@ export function StoreProvider({ repository, children }: { repository: Repository
         const fixed = untimed.map((e) => ({ ...e, timed: true }));
         await Promise.all(fixed.map((e) => repository.putExercise(e)));
         data = { ...data, exercises: data.exercises.map((e) => fixed.find((x) => x.id === e.id) ?? e) };
+      }
+      // Installs from before newer built-in exercises: add them, and update renamed ones.
+      const updates = seedUpdates(data.exercises);
+      if (updates.length > 0) {
+        await Promise.all(updates.map((e) => repository.putExercise(e)));
+        const ids = new Set(updates.map((e) => e.id));
+        data = { ...data, exercises: [...data.exercises.filter((e) => !ids.has(e.id)), ...updates] };
       }
       if (!cancelled) setState({ status: 'ready', data });
       // Everything lives only in this browser. Without this the browser may clear it when the device runs low on
