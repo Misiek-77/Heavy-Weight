@@ -57,6 +57,7 @@ export function ProgressScreen() {
       <section className="section">
         <ul className="list">
           {[
+            ['/postepy/podsumowanie', 'Podsumowanie', 'Tydzień, miesiąc i rok w liczbach'],
             ['/postepy/rekordy', 'Rekordy', 'Najlepsze wyniki i historia ich bicia'],
             ['/postepy/porownanie', 'Porównanie miesięcy', 'Ten miesiąc obok poprzedniego'],
             ['/postepy/zdjecia', 'Zdjęcia sylwetki', 'Dwa zdjęcia obok siebie'],

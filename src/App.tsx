@@ -16,6 +16,7 @@ const ProgressScreen = lazy(() => import('./screens/Progress').then((m) => ({ de
 const RecordsScreen = lazy(() => import('./screens/ProgressDetails').then((m) => ({ default: m.RecordsScreen })));
 const CompareScreen = lazy(() => import('./screens/ProgressDetails').then((m) => ({ default: m.CompareScreen })));
 const PhotosScreen = lazy(() => import('./screens/ProgressDetails').then((m) => ({ default: m.PhotosScreen })));
+const SummaryScreen = lazy(() => import('./screens/Summary').then((m) => ({ default: m.SummaryScreen })));
 const SettingsScreen = lazy(() => import('./screens/Settings').then((m) => ({ default: m.SettingsScreen })));
 
 export function App() {
@@ -43,6 +44,7 @@ export function App() {
           <Route path="/historia" element={<HistoryScreen />} />
           <Route path="/historia/:id" element={<WorkoutDetail />} />
           <Route path="/postepy" element={<ProgressScreen />} />
+          <Route path="/postepy/podsumowanie" element={<SummaryScreen />} />
           <Route path="/postepy/rekordy" element={<RecordsScreen />} />
           <Route path="/postepy/porownanie" element={<CompareScreen />} />
           <Route path="/postepy/zdjecia" element={<PhotosScreen />} />
