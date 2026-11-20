@@ -40,10 +40,10 @@ const rows = (csv: string) => csv.replace(/^﻿/, '').trimEnd().split('\r\n');
 describe('history as CSV', () => {
   it('has one row per done set, with Polish number format and a header naming the unit', () => {
     expect(rows(historyCsv([workout({})], exercises, 'kg'))).toEqual([
-      'Data;Godzina;Trening;Ćwiczenie;Seria;Rodzaj;Ciężar (kg);Powtórzenia;Czas (s);Notatka',
-      '2026-11-03;18:05;Góra A;"Wyciskanie; leżąc";1;rozgrzewkowa;40;10;;"łokcie ""bliżej"""',
-      '2026-11-03;18:05;Góra A;"Wyciskanie; leżąc";2;;82,5;8;;"łokcie ""bliżej"""',
-      '2026-11-03;18:05;Góra A;Deska;1;;;;60;',
+      'Data;Godzina;Trening;Ćwiczenie;Seria;Rodzaj;Ciężar (kg);Powtórzenia;Czas (s);RIR;Notatka',
+      '2026-11-03;18:05;Góra A;"Wyciskanie; leżąc";1;rozgrzewkowa;40;10;;;"łokcie ""bliżej"""',
+      '2026-11-03;18:05;Góra A;"Wyciskanie; leżąc";2;;82,5;8;;;"łokcie ""bliżej"""',
+      '2026-11-03;18:05;Góra A;Deska;1;;;;60;;',
     ]);
   });
 

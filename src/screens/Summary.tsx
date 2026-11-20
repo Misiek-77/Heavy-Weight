@@ -6,6 +6,8 @@ import { Header } from '../ui/Chrome';
 import { ExerciseThumb } from '../ui/ExerciseThumb';
 import { capitalize, formatDay, formatDuration, formatNumber, formatVolume, formatWeight, formatWhole, plural, weightUnit } from '../ui/format';
 import { Icon } from '../ui/Icon';
+import { saveFile } from '../ui/saveFile';
+import { drawSummaryCard } from '../ui/shareCard';
 import { useToday } from '../ui/useToday';
 
 const KIND_LABEL: Record<PeriodKind, string> = { week: 'Tydzień', month: 'Miesiąc', year: 'Rok' };
@@ -32,6 +34,30 @@ export function SummaryScreen() {
   const period = periodAt(kind, now, offset);
   const before = periodAt(kind, now, offset - 1);
   const summary = useMemo(() => summarizePeriod(store.workouts, store.exercises, period), [store.workouts, store.exercises, period.from.getTime(), kind]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [sharing, setSharing] = useState(false);
+
+  async function share() {
+    setSharing(true);
+    try {
+      const card = await drawSummaryCard({
+        kind: KIND_LABEL[kind],
+        period: periodTitle(period),
+        artUrl: `${import.meta.env.BASE_URL}summary/${kind}.jpg`,
+        workouts: plural(summary.workouts, 'trening', 'treningi', 'treningów'),
+        stats: [
+          [formatDuration(summary.duration), 'Czas'],
+          [`${formatVolume(summary.volume)} ${weightUnit()}`, 'Objętość'],
+          [formatWhole(summary.sets), 'Serie robocze'],
+          [formatWhole(summary.records.length), capitalize(plural(summary.records.length, 'rekord', 'rekordy', 'rekordów').replace(/^\d+ /, ''))],
+        ],
+        top: summary.topExercises.map((e) => `${store.exerciseName(e.exerciseId)} · ${plural(e.sets, 'seria', 'serie', 'serii')}`),
+      });
+      await saveFile(card, `trening-podsumowanie-${kind}-${period.from.toISOString().slice(0, 10)}.jpg`, `Podsumowanie: ${periodTitle(period)}`);
+    } finally {
+      setSharing(false);
+    }
+  }
+
   const previous = useMemo(() => summarizePeriod(store.workouts, store.exercises, before), [store.workouts, store.exercises, before.from.getTime(), kind]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
@@ -96,6 +122,10 @@ export function SummaryScreen() {
             <Tile label="Powtórzenia" value={formatWhole(summary.reps)} now={summary.reps} before={previous.reps} />
             <Tile label="Średni trening" value={formatDuration(summary.duration / summary.workouts)} />
           </section>
+
+          <button type="button" className="btn btn-block" style={{ marginTop: 16 }} disabled={sharing} onClick={() => void share()}>
+            {sharing ? 'Przygotowuję obrazek…' : 'Udostępnij jako obrazek'}
+          </button>
 
           <MuscleShare summary={summary} />
 

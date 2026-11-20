@@ -88,3 +88,23 @@ describe('backup', () => {
     if (!result.ok) expect(result.error.length).toBeGreaterThan(0);
   });
 });
+
+describe('reps in reserve in a backup', () => {
+  it('keeps a valid value and drops a broken one', () => {
+    const file = (rir: unknown) =>
+      JSON.stringify({
+        app: 'trening',
+        version: 1,
+        data: {
+          exercises: [{ id: 'e', name: 'E', muscleGroup: 'klatka', equipment: 'sztanga' }],
+          plans: [],
+          workouts: [{ id: 'w', name: 'W', startedAt: '2026-01-01T10:00:00.000Z', finishedAt: '2026-01-01T11:00:00.000Z', entries: [{ exerciseId: 'e', sets: [{ weight: 50, reps: 5, done: true, rir }] }] }],
+          settings: { restSeconds: 90 },
+        },
+      });
+    const ok = parseBackup(file(2));
+    const broken = parseBackup(file('dużo'));
+    expect(ok.ok && ok.data.workouts[0].entries[0].sets[0].rir).toBe(2);
+    expect(broken.ok && broken.data.workouts[0].entries[0].sets[0]).toEqual({ weight: 50, reps: 5, done: true });
+  });
+});

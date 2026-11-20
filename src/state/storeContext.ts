@@ -25,6 +25,8 @@ export interface Store extends AppData {
   /** Physique photos, read and written straight from storage rather than held in memory. */
   photos: { list(): Promise<Photo[]>; save(photo: Photo): Promise<void>; remove(id: string): Promise<void> };
   saveSettings(settings: Settings): void;
+  /** Adds workouts (and the exercises they need) imported from another app, keeping everything already saved. */
+  addImported(exercises: Exercise[], workouts: Workout[]): void;
   replaceAll(data: AppData): Promise<void>;
 }
 

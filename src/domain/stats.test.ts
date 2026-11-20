@@ -6,6 +6,7 @@ import {
   liveRecord,
   lastPerformance,
   newRecordExerciseIds,
+  percentTable,
   progressSeries,
   workoutVolume,
 } from './stats';
@@ -134,5 +135,25 @@ describe('liveRecord', () => {
     const now = active([set(110, 3), set(105, 3), set(110, 4)]);
     expect(liveRecord(now, 0, 1, history)).toBeNull();
     expect(liveRecord(now, 0, 2, history)).toBe('oneRepMax');
+  });
+});
+
+describe('percentage table', () => {
+  it('lists 100% to 60% of the max with loadable weights and the repetitions they allow', () => {
+    const rows = percentTable(100, 2.5);
+    expect(rows.map((r) => [r.percent, r.weight, r.reps])).toEqual([
+      [100, 100, 1],
+      [95, 95, 2],
+      [90, 90, 3],
+      [85, 85, 5],
+      [80, 80, 8],
+      [75, 75, 10],
+      [70, 70, 13],
+      [65, 65, 16],
+      [60, 60, 20],
+    ]);
+    expect(percentTable(117, 2.5)[1].weight).toBe(110); // 111.15, rounded down to 2.5
+    expect(percentTable(99.17, 2.5)[0].weight).toBe(97.5); // never above the estimated max
+    expect(percentTable(0, 2.5)).toEqual([]);
   });
 });

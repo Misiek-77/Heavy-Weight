@@ -1,10 +1,11 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { guideFor } from '../domain/guides';
-import { lastPerformance, liveRecord, newRecordExerciseIds } from '../domain/stats';
-import { SET_KINDS, type Workout, type WorkoutEntry, type WorkoutSet } from '../domain/types';
+import { isStalled, lastPerformance, liveRecord, newRecordExerciseIds, STALL_SESSIONS } from '../domain/stats';
+import { RIR_VALUES, SET_KINDS, type Workout, type WorkoutEntry, type WorkoutSet } from '../domain/types';
 import {
   addEntry,
   addWarmup,
+  deloadEntry,
   addSet,
   finishWorkout,
   removeEntry,
@@ -26,7 +27,7 @@ import { Icon } from '../ui/Icon';
 import { NoteField } from '../ui/NoteField';
 import { NumberField } from '../ui/NumberField';
 import { PlateCalculator } from '../ui/PlateCalculator';
-import { SET_KIND_INFO } from '../ui/setKinds';
+import { rirLabel, SET_KIND_INFO } from '../ui/setKinds';
 import { Confirm, Sheet } from '../ui/Sheet';
 import { useWakeLock } from '../ui/useWakeLock';
 import type { WorkoutSummary } from './TrainingScreen';
@@ -81,6 +82,12 @@ export function ActiveWorkout({ workout, onFinished }: { workout: Workout; onFin
     () => new Map(exerciseIds.split('|').map((id) => [id, lastPerformance(history, id)])),
     [history, exerciseIds],
   );
+  const stalled = useMemo(
+    () => new Set(exerciseIds.split('|').filter((id) => isStalled(history, id, exercises.get(id)?.timed))),
+    [history, exerciseIds, exercises],
+  );
+  /** Entries already made lighter in this workout, so the suggestion is not repeated. */
+  const [deloaded, setDeloaded] = useState<ReadonlySet<number>>(new Set());
   const save = store.saveWorkout;
   const hasOpenSets = workout.entries.some((e) => e.sets.some((s) => !s.done));
   const swapped = swapIndex === null ? undefined : exercises.get(workout.entries[swapIndex]?.exerciseId ?? '');
@@ -189,6 +196,24 @@ export function ActiveWorkout({ workout, onFinished }: { workout: Workout; onFin
                     ` · poprzednio górna granica w każdej serii, więc dodano ${formatWeight(weightStep())} ${weightUnit()}`}
                 </p>
               )}
+              {stalled.has(entry.exerciseId) && !deloaded.has(entryIndex) && entry.sets.some((s) => !s.done && s.weight > 0) && (
+                <div className="stall-hint" role="note">
+                  <p>
+                    <strong>Bez postępu od {STALL_SESSIONS} treningów.</strong> Lżejszy trening pozwala odpocząć i ruszyć dalej. Możesz też
+                    zmienić zakres powtórzeń w planie.
+                  </p>
+                  <button
+                    type="button"
+                    className="btn btn-small"
+                    onClick={() => {
+                      save(deloadEntry(workout, entryIndex, weightStep()));
+                      setDeloaded(new Set([...deloaded, entryIndex]));
+                    }}
+                  >
+                    Lżej o 10%
+                  </button>
+                </div>
+              )}
               <div className="sets">
                 <div className="sets-head" aria-hidden="true">
                   <span>#</span>
@@ -206,10 +231,11 @@ export function ActiveWorkout({ workout, onFinished }: { workout: Workout; onFin
                       <button
                         type="button"
                         className={set.kind && set.kind !== 'normal' ? `set-index kind-${set.kind}` : 'set-index'}
-                        aria-label={`${name}, seria ${n}: rodzaj serii, teraz ${SET_KIND_INFO[set.kind ?? 'normal'].label.toLowerCase()}`}
+                        aria-label={`${name}, seria ${n}: rodzaj serii i zapas powtórzeń, teraz ${SET_KIND_INFO[set.kind ?? 'normal'].label.toLowerCase()}${set.rir !== undefined ? `, zapas ${rirLabel(set.rir)}` : ''}`}
                         onClick={() => setKindTarget({ entryIndex, setIndex })}
                       >
                         {SET_KIND_INFO[set.kind ?? 'normal'].mark || labels[setIndex]}
+                        {set.rir !== undefined && <small className="rir">@{rirLabel(set.rir)}</small>}
                       </button>
                       <span className="set-prev">{prev ? formatEntrySet(prev, timed) : '—'}</span>
                       <NumberField
@@ -330,7 +356,31 @@ export function ActiveWorkout({ workout, onFinished }: { workout: Workout; onFin
         filter={swapped ? (e) => e.muscleGroup === swapped.muscleGroup && e.id !== swapped.id : undefined}
         onPick={(id) => swapIndex !== null && save(swapExercise(workout, swapIndex, id, history, weightStep()))}
       />
-      <Sheet open={kindTarget !== null} onClose={() => setKindTarget(null)} title="Rodzaj serii">
+      <Sheet open={kindTarget !== null} onClose={() => setKindTarget(null)} title="Seria">
+        <h3 className="label">Zapas powtórzeń (RIR)</h3>
+        <p className="muted small" style={{ marginTop: 4 }}>
+          Ile powtórzeń dałbyś jeszcze radę zrobić. Gdy przy każdej serii zostają 3 lub więcej, następnym razem aplikacja doda ciężar.
+        </p>
+        <div className="chips" role="group" aria-label="Zapas powtórzeń" style={{ marginBottom: 18 }}>
+          {RIR_VALUES.map((rir) => {
+            const current = kindTarget && workout.entries[kindTarget.entryIndex]?.sets[kindTarget.setIndex]?.rir;
+            return (
+              <button
+                key={rir}
+                type="button"
+                className="chip"
+                aria-pressed={current === rir}
+                onClick={() => {
+                  // Tapping the chosen value again clears it.
+                  if (kindTarget) save(updateSet(workout, kindTarget.entryIndex, kindTarget.setIndex, { rir: current === rir ? undefined : rir }));
+                }}
+              >
+                {rirLabel(rir)}
+              </button>
+            );
+          })}
+        </div>
+        <h3 className="label">Rodzaj serii</h3>
         <ul className="list">
           {SET_KINDS.map((kind) => {
             const current =

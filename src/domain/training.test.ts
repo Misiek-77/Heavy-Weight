@@ -229,3 +229,17 @@ describe('correcting a finished workout', () => {
     expect(reviseWorkout({ ...done, entries: [{ exerciseId: 'a', sets: [set(50, 0)] }] }, NOW)).toBeNull();
   });
 });
+
+describe('reps in reserve', () => {
+  it('adds weight without a rep range once every working set was clearly too light', () => {
+    expect(shouldIncrease([{ ...set(80, 8), rir: 3 }, { ...set(80, 8), rir: 4 }], undefined)).toBe(true);
+    expect(shouldIncrease([{ ...set(80, 8), rir: 3 }, { ...set(80, 8), rir: 2 }], undefined)).toBe(false);
+    expect(shouldIncrease([set(80, 8)], undefined)).toBe(false);
+  });
+
+  it('is not copied into the next workout', () => {
+    const history = [finished('a', '10', 'bench', [{ ...set(80, 8), rir: 1 }])];
+    const w = start(plan([{ exerciseId: 'bench', targetSets: 1 }]), history);
+    expect(w.entries[0].sets[0]).toEqual(set(80, 8, false));
+  });
+});

@@ -23,7 +23,7 @@ const time = (date: Date) => `${String(date.getHours()).padStart(2, '0')}:${Stri
  */
 export function historyCsv(workouts: Workout[], exercises: Exercise[], unit: WeightUnit): string {
   const byId = new Map(exercises.map((e) => [e.id, e]));
-  const header = ['Data', 'Godzina', 'Trening', 'Ćwiczenie', 'Seria', 'Rodzaj', `Ciężar (${unit})`, 'Powtórzenia', 'Czas (s)', 'Notatka'];
+  const header = ['Data', 'Godzina', 'Trening', 'Ćwiczenie', 'Seria', 'Rodzaj', `Ciężar (${unit})`, 'Powtórzenia', 'Czas (s)', 'RIR', 'Notatka'];
   const lines = [header.map(field).join(';')];
   for (const w of finishedWorkouts(workouts).reverse()) {
     const started = new Date(w.startedAt);
@@ -46,6 +46,7 @@ export function historyCsv(workouts: Workout[], exercises: Exercise[], unit: Wei
               timed && s.weight === 0 ? '' : decimal(weight),
               timed ? '' : s.reps,
               timed ? s.reps : '',
+              s.rir ?? '',
               entry.note ?? '',
             ]
               .map(field)

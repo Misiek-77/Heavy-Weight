@@ -7,3 +7,6 @@ export const SET_KIND_INFO: Record<SetKind, { label: string; mark: string; hint:
   failure: { label: 'Do upadku', mark: 'U', hint: 'Do ostatniego możliwego powtórzenia.' },
   drop: { label: 'Drop set', mark: 'D', hint: 'Od razu po poprzedniej serii, z mniejszym ciężarem.' },
 };
+
+/** "2", or "4+" for the top value that stands for "four or more". */
+export const rirLabel = (rir: number) => (rir >= 4 ? '4+' : String(rir));

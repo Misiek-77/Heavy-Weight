@@ -135,3 +135,42 @@ export function liveRecord(
   if (epley1RM(set.weight, set.reps) > bestOrm) return 'oneRepMax';
   return null;
 }
+
+/** Workouts in a row without a better estimated 1RM before an exercise counts as stalled. */
+export const STALL_SESSIONS = 3;
+
+/**
+ * Whether progress on an exercise has stalled: its last STALL_SESSIONS workouts all fell short of the best
+ * estimated 1RM reached before them. Needs at least one earlier workout to compare with. Timed and bodyweight
+ * exercises (no weight) are never reported.
+ */
+export function isStalled(workouts: Workout[], exerciseId: string, timed = false): boolean {
+  if (timed) return false;
+  const series = progressSeries(workouts, exerciseId);
+  if (series.length <= STALL_SESSIONS) return false;
+  const recent = series.slice(-STALL_SESSIONS);
+  const before = Math.max(...series.slice(0, -STALL_SESSIONS).map((p) => p.value));
+  return before > 0 && recent.every((p) => p.value <= before);
+}
+
+export interface PercentRow {
+  percent: number;
+  /** Weight at that share of the 1RM, rounded down to a loadable step so it never exceeds the share. */
+  weight: number;
+  /** About how many repetitions that weight allows (Epley, solved for repetitions). */
+  reps: number;
+}
+
+/** Working weights from 100% of a one-rep max down to 60%, in steps of 5%. */
+export function percentTable(oneRepMax: number, step: number): PercentRow[] {
+  if (oneRepMax <= 0) return [];
+  return Array.from({ length: 9 }, (_, i) => {
+    const percent = 100 - i * 5;
+    const share = percent / 100;
+    return {
+      percent,
+      weight: Math.round(Math.floor((oneRepMax * share) / step + 1e-9) * step * 1000) / 1000,
+      reps: Math.max(1, Math.round(30 * (1 / share - 1))),
+    };
+  });
+}

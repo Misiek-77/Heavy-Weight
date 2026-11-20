@@ -1632,3 +1632,65 @@ button.set-index {
   border: 1px solid var(--line);
   box-shadow: 0 8px 24px rgb(0 0 0 / 0.25);
 }
+
+/* ---------- stalled progress hint ---------- */
+
+.stall-hint {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 10px 0 4px;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  background: var(--field);
+  font-size: 14px;
+}
+
+.stall-hint p {
+  flex: 1;
+}
+
+/* Reps in reserve noted on a set, under its number. */
+.set-index .rir {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--muted);
+}
+
+/* ---------- fold-out section (1RM calculator) ---------- */
+
+.disclosure > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: var(--tap);
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+
+.disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+.disclosure > summary::after {
+  content: '+';
+  font-size: 22px;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.disclosure[open] > summary::after {
+  content: '−';
+}
+
+.disclosure[open] > summary {
+  margin-bottom: 10px;
+}
+
+.percent-table td,
+.percent-table th {
+  padding: 8px 0;
+}

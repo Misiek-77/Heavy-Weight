@@ -17,10 +17,18 @@ function prefilledSets(previous: WorkoutSet[], count: number): WorkoutSet[] {
 /** Added to the working sets once the top of the rep range was reached in every one of them. */
 export const WEIGHT_STEP = 2.5;
 
-/** Whether last time's working sets all reached the top of the target range, so it is time to add weight. */
+/** Reps in reserve from which a set counts as clearly too light. */
+export const EASY_RIR = 3;
+
+/**
+ * Whether it is time to add weight: last time every working set reached the top of the target range, or,
+ * without a range, every one was noted as clearly too light (EASY_RIR or more reps in reserve).
+ */
 export function shouldIncrease(previous: WorkoutSet[], repMax: number | undefined): boolean {
   const working = previous.filter((s) => s.kind !== 'warmup');
-  return repMax !== undefined && working.length > 0 && working.every((s) => s.weight > 0 && s.reps >= repMax);
+  if (working.length === 0 || working.some((s) => s.weight <= 0)) return false;
+  if (repMax !== undefined) return working.every((s) => s.reps >= repMax);
+  return working.every((s) => s.rir !== undefined && s.rir >= EASY_RIR);
 }
 
 /** Prefilled sets for an exercise with a rep range: heavier and back at the bottom of the range when earned. */
@@ -231,4 +239,22 @@ export function reviseWorkout(edited: Workout, now: string): Workout | null {
 export function setLabels(sets: WorkoutSet[]): string[] {
   let n = 0;
   return sets.map((s) => (s.kind === 'warmup' ? 'R' : String(++n)));
+}
+
+/** How much lighter a deload makes the working sets. */
+export const DELOAD_SHARE = 0.1;
+
+/**
+ * A lighter session for an exercise that stalled: the working sets still to do get 10% less weight, rounded
+ * down to what can be loaded (`step`). Warm-ups and sets already done stay as they are.
+ */
+export function deloadEntry(w: Workout, entryIndex: number, step: number): Workout {
+  return mapEntry(w, entryIndex, (e) => ({
+    ...e,
+    sets: e.sets.map((s) =>
+      s.done || s.kind === 'warmup' || s.weight <= 0
+        ? s
+        : { ...s, weight: Math.round(Math.floor((s.weight * (1 - DELOAD_SHARE)) / step + 1e-9) * step * 1000) / 1000 },
+    ),
+  }));
 }

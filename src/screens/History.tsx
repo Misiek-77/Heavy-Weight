@@ -6,7 +6,7 @@ import { removeEntry, removeSet, repeatWorkout, reviseWorkout, setEntryNote, set
 import { useStore } from '../state/store';
 import { Header } from '../ui/Chrome';
 import { ExerciseThumb } from '../ui/ExerciseThumb';
-import { SET_KIND_INFO } from '../ui/setKinds';
+import { rirLabel, SET_KIND_INFO } from '../ui/setKinds';
 import {
   displayWeight,
   formatDay,
@@ -154,6 +154,7 @@ export function WorkoutDetail() {
                 <dt>{setLabels(entry.sets)[n]}</dt>
                 <dd>
                   {formatEntrySet(set, store.timedIds.has(entry.exerciseId))}
+                  {set.rir !== undefined && <span className="muted"> · zapas {rirLabel(set.rir)}</span>}
                   {set.kind && set.kind !== 'normal' && <span className="kind-tag">{SET_KIND_INFO[set.kind].label}</span>}
                 </dd>
               </div>

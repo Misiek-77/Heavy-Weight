@@ -34,7 +34,9 @@ export function TrainingScreen() {
   const last = finishedWorkouts(store.workouts)[0];
   const today = planForDay(store.settings.schedule, store.plans, now);
   const finishedCount = store.workouts.filter((w) => w.finishedAt).length;
-  const remind = backupDue(store.settings, finishedCount, now);
+  const lastBackup = store.settings.lastBackupAt ?? '';
+  const newSinceBackup = store.workouts.filter((w) => w.finishedAt && w.finishedAt > lastBackup).length;
+  const remind = backupDue(store.settings, finishedCount, now, newSinceBackup);
   const scheduled = store.settings.schedule.some((id) => store.plans.some((p) => p.id === id));
 
   return (

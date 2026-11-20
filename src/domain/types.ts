@@ -58,7 +58,12 @@ export interface WorkoutSet {
   done: boolean;
   /** Absent means a normal working set. */
   kind?: SetKind;
+  /** Repetitions in reserve: how many more were possible (4 stands for 4 or more). Absent when not noted. */
+  rir?: number;
 }
+
+/** The repetitions-in-reserve values offered; the last one means "that many or more". */
+export const RIR_VALUES = [0, 1, 2, 3, 4] as const;
 
 export interface WorkoutEntry extends EntryTargets {
   exerciseId: string;

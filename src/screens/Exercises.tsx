@@ -8,6 +8,7 @@ import { ExerciseGuide } from '../ui/ExerciseGuide';
 import { capitalize, formatClock, formatDay, formatEntrySet, formatVolume, formatWeight, toUnit, weightUnit } from '../ui/format';
 import { Icon } from '../ui/Icon';
 import { LineChart } from '../ui/LineChart';
+import { OneRepMax } from '../ui/OneRepMax';
 import { Confirm } from '../ui/Sheet';
 
 export function ExercisesScreen() {
@@ -102,6 +103,13 @@ export function ExerciseDetail() {
             </div>
           </div>
         </section>
+      )}
+
+      {!timed && (
+        <details className="section disclosure">
+          <summary>Kalkulator maksimum (1RM)</summary>
+          <OneRepMax initial={records.maxWeight ? { weight: records.maxWeight.weight, reps: records.maxWeight.reps } : undefined} />
+        </details>
       )}
 
       {recent.length === 0 ? (

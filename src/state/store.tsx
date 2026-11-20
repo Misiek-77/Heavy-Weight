@@ -98,6 +98,14 @@ export function StoreProvider({ repository, children }: { repository: Repository
         remove: (id: string) => repository.deletePhoto(id),
       },
       saveSettings: (s: Settings) => commit((d) => ({ ...d, settings: s }), () => repository.putSettings(s)),
+      addImported: (exercises: Exercise[], workouts: Workout[]) =>
+        commit(
+          (d) => ({ ...d, exercises: [...d.exercises, ...exercises], workouts: [...d.workouts, ...workouts] }),
+          async () => {
+            await Promise.all(exercises.map((e) => repository.putExercise(e)));
+            await Promise.all(workouts.map((w) => repository.putWorkout(w)));
+          },
+        ),
       replaceAll: async (imported: AppData) => {
         // A backup made by an older version lacks newer built-in exercises; restore it with them.
         const data = withUpdates(imported, seedUpdates(imported.exercises));

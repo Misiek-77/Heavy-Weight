@@ -87,7 +87,9 @@ function workoutSet(v: unknown): WorkoutSet {
   );
   check(v.kind === undefined || (SET_KINDS as readonly unknown[]).includes(v.kind), 'Plik zawiera serię nieznanego rodzaju.');
   const kind = v.kind as WorkoutSet['kind'];
-  return { weight: v.weight, reps: v.reps, done: v.done, ...(kind && kind !== 'normal' ? { kind } : {}) };
+  // Reps in reserve are optional; a value that is not a small whole number is dropped rather than refused.
+  const rir = Number.isInteger(v.rir) && (v.rir as number) >= 0 && (v.rir as number) <= 10 ? (v.rir as number) : undefined;
+  return { weight: v.weight, reps: v.reps, done: v.done, ...(kind && kind !== 'normal' ? { kind } : {}), ...(rir !== undefined ? { rir } : {}) };
 }
 
 function workout(v: unknown, exerciseIds: Set<string>): Workout {
