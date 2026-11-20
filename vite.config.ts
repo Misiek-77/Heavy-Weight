@@ -8,7 +8,9 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      // The app asks before switching to a new version (src/ui/UpdateBanner.tsx), which also registers the worker.
+      registerType: 'prompt',
+      injectRegister: false,
       includeAssets: ['icon-192.png', 'icon-512.png', 'apple-touch-icon.png'],
       // Illustrations are precached so the how-to works offline at the gym.
       workbox: {

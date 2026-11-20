@@ -7,6 +7,7 @@ import { useResting } from './state/restTimer';
 import { useStore } from './state/store';
 import { RestBar, TabBar } from './ui/Chrome';
 import { Icon } from './ui/Icon';
+import { UpdateBanner } from './ui/UpdateBanner';
 
 // Screens not needed to log a workout load on first visit, so the app starts faster. The service worker
 // precaches their files, so they still open offline.
@@ -36,6 +37,7 @@ export function App() {
             </button>
           </div>
         )}
+        <UpdateBanner />
         <Suspense fallback={<main className="screen" aria-busy="true" />}>
         <Routes>
           <Route path="/" element={<TrainingScreen />} />

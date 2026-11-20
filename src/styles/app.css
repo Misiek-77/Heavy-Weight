@@ -1621,3 +1621,14 @@ button.set-index {
   font-size: 13px;
   font-weight: 650;
 }
+
+/* ---------- new version available ---------- */
+
+.banner-update {
+  top: auto;
+  bottom: calc(var(--tabbar) + env(safe-area-inset-bottom) + var(--rest-space, 0px) + 12px);
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.25);
+}
