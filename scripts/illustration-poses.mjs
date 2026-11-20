@@ -110,3 +110,25 @@ export function promptFor(key) {
     `equipment drawn realistically and in correct proportion.`
   );
 }
+
+/**
+ * Prompt for an animation strip: four frames of one repetition in a single row, wide 16:9. Gemini keeps
+ * a single row far more reliably than a 2 by 2 grid. Import the result with
+ * `node scripts/import-frames.mjs <folder> <id> --one-row=<id>`.
+ */
+export function stripPromptFor(key) {
+  const [exercise, view, start, end, muscles] = POSES[key];
+  return (
+    `Generate one wide image in landscape 16:9 format: an animation strip of a ${exercise}, ${view}. ` +
+    'EXACTLY FOUR drawings of the same athlete side by side in ONE single row, evenly spaced, each in its own quarter of the width, ' +
+    'on one continuous background with no dividing lines, borders or gaps. ' +
+    'The athlete is the SAME faceless male (short grey hair, light skin, grey tank top, dark grey shorts, light grey shoes), ' +
+    'drawn at exactly the same size, from exactly the same camera angle and at exactly the same spot within his quarter in every drawing, ' +
+    'so the four drawings work as consecutive animation frames. Any equipment (bench, machine, bar, cable) is identical and in the same place within each quarter. ' +
+    `From left to right: 1) the start position: ${start}; 2) one third of the way from the start to the end position; ` +
+    `3) two thirds of the way; 4) the end position: ${end}. The movement progresses smoothly and evenly from drawing 1 to drawing 4. ` +
+    `Working muscles (${muscles}) highlighted in lime green (#c8f031) in every drawing, the rest of the body neutral light grey. ` +
+    'Minimalist flat vector illustration, thin dark outlines, plain uniform off-white background (#f7f7f3), each figure and all equipment fully inside its own quarter with a margin. ' +
+    'No text, no numbers, no labels, no arrows, no logos, no watermark. Anatomically correct, exactly two arms and two legs per figure.'
+  );
+}
