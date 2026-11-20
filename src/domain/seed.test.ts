@@ -21,6 +21,12 @@ describe('bringing an older install up to date', () => {
     expect(seedUpdates(archived)).toEqual([]);
   });
 
+  it('marks built-in timed exercises stored before timed sets existed', () => {
+    const { timed: _t, ...plank } = find('seed-plank');
+    const others = SEED_EXERCISES.filter((e) => e.id !== plank.id);
+    expect(seedUpdates([...others, plank])).toEqual([{ ...plank, timed: true }]);
+  });
+
   it('marks the side plank as held for time', () => {
     expect(find('seed-side-plank').timed).toBe(true);
   });

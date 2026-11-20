@@ -1,7 +1,8 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { StoreContext, type Store } from './storeContext';
 import type { Repository } from '../data/repository';
 import { setWeightUnit } from '../ui/format';
-import { SEED_EXERCISES, SEED_PLANS, TIMED_SEEDS, seedUpdates } from '../domain/seed';
+import { SEED_EXERCISES, SEED_PLANS, seedUpdates } from '../domain/seed';
 import {
   DEFAULT_SETTINGS,
   type AppData,
@@ -14,40 +15,15 @@ import {
   type Workout,
 } from '../domain/types';
 
-export interface Store extends AppData {
-  /** The workout in progress, if any. */
-  activeWorkout: Workout | undefined;
-  /** Message of the last failed save, shown as a banner. */
-  error: string | null;
-  dismissError(): void;
-  exerciseName(id: string): string;
-  /** Ids of exercises held for time, whose sets count seconds. */
-  timedIds: ReadonlySet<string>;
-  saveExercise(exercise: Exercise): void;
-  savePlan(plan: Plan): void;
-  removePlan(id: string): void;
-  saveWorkout(workout: Workout): void;
-  removeWorkout(id: string): void;
-  saveMeasurement(measurement: Measurement): void;
-  removeMeasurement(id: string): void;
-  saveGoal(goal: Goal): void;
-  removeGoal(id: string): void;
-  /** Physique photos, read and written straight from storage rather than held in memory. */
-  photos: { list(): Promise<Photo[]>; save(photo: Photo): Promise<void>; remove(id: string): Promise<void> };
-  saveSettings(settings: Settings): void;
-  replaceAll(data: AppData): Promise<void>;
-}
-
-const StoreContext = createContext<Store | null>(null);
-
-export function useStore(): Store {
-  const store = useContext(StoreContext);
-  if (!store) throw new Error('useStore must be used inside <StoreProvider>');
-  return store;
-}
-
 const upsert = <T extends { id: string }>(list: T[], item: T) =>
   list.some((x) => x.id === item.id) ? list.map((x) => (x.id === item.id ? item : x)) : [...list, item];
+
+/** `data` with `updates` replacing the exercises of the same id, or added when new. */
+function withUpdates(data: AppData, updates: Exercise[]): AppData {
+  if (updates.length === 0) return data;
+  const ids = new Set(updates.map((e) => e.id));
+  return { ...data, exercises: [...data.exercises.filter((e) => !ids.has(e.id)), ...updates] };
+}
 
 const SAVE_ERROR =
   'Nie udało się zapisać ostatniej zmiany na urządzeniu. Sprawdź, czy w pamięci telefonu jest wolne miejsce, i zrób kopię zapasową.';
@@ -67,19 +43,11 @@ export function StoreProvider({ repository, children }: { repository: Repository
         data = { exercises: SEED_EXERCISES, plans: SEED_PLANS, workouts: [], measurements: [], goals: [], settings: DEFAULT_SETTINGS };
         await repository.replaceAll(data);
       }
-      // Installs from before timed exercises existed: mark the built-in ones that are held for time.
-      const untimed = data.exercises.filter((e) => TIMED_SEEDS.has(e.id) && e.timed === undefined);
-      if (untimed.length > 0) {
-        const fixed = untimed.map((e) => ({ ...e, timed: true }));
-        await Promise.all(fixed.map((e) => repository.putExercise(e)));
-        data = { ...data, exercises: data.exercises.map((e) => fixed.find((x) => x.id === e.id) ?? e) };
-      }
-      // Installs from before newer built-in exercises: add them, and update renamed ones.
+      // Data from an older version of the app gets the current built-in exercises.
       const updates = seedUpdates(data.exercises);
       if (updates.length > 0) {
         await Promise.all(updates.map((e) => repository.putExercise(e)));
-        const ids = new Set(updates.map((e) => e.id));
-        data = { ...data, exercises: [...data.exercises.filter((e) => !ids.has(e.id)), ...updates] };
+        data = withUpdates(data, updates);
       }
       if (!cancelled) setState({ status: 'ready', data });
       // Everything lives only in this browser. Without this the browser may clear it when the device runs low on
@@ -130,7 +98,9 @@ export function StoreProvider({ repository, children }: { repository: Repository
         remove: (id: string) => repository.deletePhoto(id),
       },
       saveSettings: (s: Settings) => commit((d) => ({ ...d, settings: s }), () => repository.putSettings(s)),
-      replaceAll: async (data: AppData) => {
+      replaceAll: async (imported: AppData) => {
+        // A backup made by an older version lacks newer built-in exercises; restore it with them.
+        const data = withUpdates(imported, seedUpdates(imported.exercises));
         await repository.replaceAll(data);
         setState({ status: 'ready', data });
       },
@@ -171,3 +141,5 @@ export function StoreProvider({ repository, children }: { repository: Repository
   if (!store) return null;
   return <StoreContext.Provider value={store}>{children}</StoreContext.Provider>;
 }
+
+export { useStore, type Store } from './storeContext';

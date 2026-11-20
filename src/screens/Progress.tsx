@@ -11,6 +11,7 @@ import { Icon } from '../ui/Icon';
 import { LineChart } from '../ui/LineChart';
 import { MEASURE_INFO } from '../ui/measures';
 import { NumberField } from '../ui/NumberField';
+import { useToday } from '../ui/useToday';
 import { Confirm, Sheet } from '../ui/Sheet';
 
 const monthTitle = new Intl.DateTimeFormat('pl-PL', { month: 'long', year: 'numeric' });
@@ -20,8 +21,8 @@ const LOAD_DAYS = 28;
 
 export function ProgressScreen() {
   const store = useStore();
-  // One "now" per visit keeps every section on the same day even around midnight.
-  const now = useMemo(() => new Date(), []);
+  // One "now" for every section, moved on when the day changes (the app may stay open for days).
+  const now = useToday();
   const summary = useMemo(() => summarize(store.workouts, now, store.timedIds), [store.workouts, now, store.timedIds]);
 
   return (

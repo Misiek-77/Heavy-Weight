@@ -10,6 +10,7 @@ import { Header } from '../ui/Chrome';
 import { formatDay, formatDuration, formatLongDay, formatVolume, plural, weightStep, weightUnit } from '../ui/format';
 import { Icon } from '../ui/Icon';
 import { Sheet } from '../ui/Sheet';
+import { useToday } from '../ui/useToday';
 import { ActiveWorkout } from './ActiveWorkout';
 
 export interface WorkoutSummary {
@@ -21,6 +22,8 @@ export interface WorkoutSummary {
 export function TrainingScreen() {
   const store = useStore();
   const [summary, setSummary] = useState<WorkoutSummary | null>(null);
+  // Refreshed when the day changes, so "Dziś" follows the calendar even if the app stays open overnight.
+  const now = useToday();
 
   if (store.activeWorkout) return <ActiveWorkout workout={store.activeWorkout} onFinished={setSummary} />;
 
@@ -29,9 +32,9 @@ export function TrainingScreen() {
       createWorkout({ plan, name: plan?.name ?? 'Trening', now: new Date().toISOString(), history: store.workouts, step: weightStep() }),
     );
   const last = finishedWorkouts(store.workouts)[0];
-  const today = planForDay(store.settings.schedule, store.plans, new Date());
+  const today = planForDay(store.settings.schedule, store.plans, now);
   const finishedCount = store.workouts.filter((w) => w.finishedAt).length;
-  const remind = backupDue(store.settings, finishedCount, new Date());
+  const remind = backupDue(store.settings, finishedCount, now);
   const scheduled = store.settings.schedule.some((id) => store.plans.some((p) => p.id === id));
 
   return (
@@ -43,7 +46,7 @@ export function TrainingScreen() {
       </Header>
       <h1 className="title">Trening</h1>
       <p className="subtitle">
-        {formatLongDay(new Date())}
+        {formatLongDay(now)}
         {last && ` · ostatnio ${last.name}, ${formatDay(last.startedAt)}`}
       </p>
 

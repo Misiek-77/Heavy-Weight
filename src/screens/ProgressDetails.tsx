@@ -10,6 +10,7 @@ import { ExerciseThumb } from '../ui/ExerciseThumb';
 import { formatDay, formatNumber, formatWeight, formatWhole, toUnit, weightUnit, capitalize } from '../ui/format';
 import { Icon } from '../ui/Icon';
 import { Confirm } from '../ui/Sheet';
+import { useToday } from '../ui/useToday';
 
 
 /** Best results of every exercise, and the list of times a best was beaten. */
@@ -95,7 +96,7 @@ const monthName = new Intl.DateTimeFormat('pl-PL', { month: 'long' });
 /** This month so far against the whole previous month. */
 export function CompareScreen() {
   const store = useStore();
-  const now = useMemo(() => new Date(), []);
+  const now = useToday();
   const { current, previous } = useMemo(() => compareMonths(store.workouts, store.exercises, now), [store.workouts, store.exercises, now]);
   const thisMonth = capitalize(monthName.format(now));
   const lastMonth = capitalize(monthName.format(new Date(now.getFullYear(), now.getMonth() - 1, 1)));
@@ -184,7 +185,7 @@ async function shrink(file: File): Promise<Blob> {
 /** Physique photos by date, with any two shown side by side. */
 export function PhotosScreen() {
   const { photos: storage } = useStore();
-  const today = useMemo(() => dayKey(new Date()), []);
+  const today = dayKey(useToday());
   const [photos, setPhotos] = useState<Photo[] | null>(null);
   const [date, setDate] = useState(today);
   const [picked, setPicked] = useState<string[]>([]);

@@ -143,16 +143,22 @@ const FORMER_NAMES: Record<string, string> = {
 };
 
 /**
- * Exercises to store so an older install has every current built-in exercise: the ones added since it was
- * set up, and renamed ones still under their former name. Anything the person changed is left alone.
+ * Exercises to store so older data (an older install, or a restored older backup) has every current built-in
+ * exercise as it is now: the ones added since, renamed ones still under their former name, and timed ones from
+ * before timed sets existed. Anything the person changed is left alone.
  */
 export function seedUpdates(stored: Exercise[]): Exercise[] {
   const byId = new Map(stored.map((e) => [e.id, e]));
   const updates: Exercise[] = [];
   for (const seed of SEED_EXERCISES) {
     const current = byId.get(seed.id);
-    if (!current) updates.push(seed);
-    else if (FORMER_NAMES[seed.id] === current.name) updates.push({ ...current, name: seed.name });
+    if (!current) {
+      updates.push(seed);
+      continue;
+    }
+    const renamed = FORMER_NAMES[seed.id] === current.name;
+    const untimed = seed.timed && current.timed === undefined;
+    if (renamed || untimed) updates.push({ ...current, ...(renamed ? { name: seed.name } : {}), ...(untimed ? { timed: true } : {}) });
   }
   return updates;
 }
