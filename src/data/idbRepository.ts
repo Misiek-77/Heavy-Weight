@@ -10,6 +10,7 @@ import {
   type Settings,
   type Workout,
 } from '../domain/types';
+import { reconnecting } from './reconnect';
 import type { Repository } from './repository';
 
 interface Schema extends DBSchema {
@@ -25,15 +26,18 @@ interface Schema extends DBSchema {
 const SETTINGS_KEY = 'settings';
 
 export function createIdbRepository(): Repository {
-  let dbPromise: Promise<IDBPDatabase<Schema>> | undefined;
-  const db = () =>
-    (dbPromise ??= openDB<Schema>('trening', 3, {
+  const connection: { run<R>(op: (db: IDBPDatabase<Schema>) => Promise<R>): Promise<R>; reset(): void } = reconnecting(() =>
+    openDB<Schema>('trening', 3, {
       // Another tab opened a newer version of the app and needs to upgrade the database. Holding the
       // connection would leave that tab stuck on a blank screen, so this one lets go and reloads itself.
       blocking(_current, _blocked, event) {
         (event.target as IDBDatabase).close();
-        dbPromise = undefined;
+        connection.reset();
         if (typeof location !== 'undefined') location.reload();
+      },
+      // The browser closed the connection on its own (iOS does this to apps left in the background).
+      terminated() {
+        connection.reset();
       },
       upgrade(database, oldVersion) {
         if (oldVersion < 1) {
@@ -50,82 +54,91 @@ export function createIdbRepository(): Repository {
           database.createObjectStore('photos', { keyPath: 'id' });
         }
       },
-    }));
+    }),
+  );
+  /** Runs one database operation, on a fresh connection if the old one was closed. */
+  const withDb = <R,>(op: (db: IDBPDatabase<Schema>) => Promise<R>) => connection.run(op);
 
   return {
     async loadAll() {
-      const d = await db();
-      const [exercises, plans, workouts, measurements, goals, settings] = await Promise.all([
-        d.getAll('exercises'),
-        d.getAll('plans'),
-        d.getAll('workouts'),
-        d.getAll('measurements'),
-        d.getAll('goals'),
-        d.get('settings', SETTINGS_KEY),
-      ]);
+      const [exercises, plans, workouts, measurements, goals, settings] = await withDb((d) =>
+        Promise.all([
+          d.getAll('exercises'),
+          d.getAll('plans'),
+          d.getAll('workouts'),
+          d.getAll('measurements'),
+          d.getAll('goals'),
+          d.get('settings', SETTINGS_KEY),
+        ]),
+      );
       return { exercises, plans, workouts, measurements, goals, settings: { ...DEFAULT_SETTINGS, ...settings } };
     },
     async putExercise(exercise) {
-      await (await db()).put('exercises', exercise);
+      await withDb((d) => d.put('exercises', exercise));
     },
     async putPlan(plan) {
-      await (await db()).put('plans', plan);
+      await withDb((d) => d.put('plans', plan));
     },
     async deletePlan(id) {
-      await (await db()).delete('plans', id);
+      await withDb((d) => d.delete('plans', id));
     },
     async putWorkout(workout) {
-      await (await db()).put('workouts', workout);
+      await withDb((d) => d.put('workouts', workout));
     },
     async deleteWorkout(id) {
-      await (await db()).delete('workouts', id);
+      await withDb((d) => d.delete('workouts', id));
     },
     async putMeasurement(measurement) {
-      await (await db()).put('measurements', measurement);
+      await withDb((d) => d.put('measurements', measurement));
     },
     async deleteMeasurement(id) {
-      await (await db()).delete('measurements', id);
+      await withDb((d) => d.delete('measurements', id));
     },
     async putGoal(goal) {
-      await (await db()).put('goals', goal);
+      await withDb((d) => d.put('goals', goal));
     },
     async deleteGoal(id) {
-      await (await db()).delete('goals', id);
+      await withDb((d) => d.delete('goals', id));
     },
     async listPhotos() {
-      return (await db()).getAll('photos');
+      return withDb((d) => d.getAll('photos'));
     },
     async putPhoto(photo) {
-      await (await db()).put('photos', photo);
+      await withDb((d) => d.put('photos', photo));
     },
     async deletePhoto(id) {
-      await (await db()).delete('photos', id);
+      await withDb((d) => d.delete('photos', id));
     },
     async putSettings(settings) {
-      await (await db()).put('settings', settings, SETTINGS_KEY);
+      await withDb((d) => d.put('settings', settings, SETTINGS_KEY));
     },
     async replaceAll(data: AppData) {
-      const tx = (await db()).transaction(['exercises', 'plans', 'workouts', 'measurements', 'goals', 'settings'], 'readwrite');
-      const exercises = tx.objectStore('exercises');
-      const plans = tx.objectStore('plans');
-      const workouts = tx.objectStore('workouts');
-      const measurements = tx.objectStore('measurements');
-      const goals = tx.objectStore('goals');
-      const settings = tx.objectStore('settings');
-      await Promise.all([
-        exercises.clear(),
-        plans.clear(),
-        workouts.clear(),
-        measurements.clear(),
-        goals.clear(),
-        ...data.exercises.map((e) => exercises.put(e)),
-        ...data.plans.map((p) => plans.put(p)),
-        ...data.workouts.map((w) => workouts.put(w)),
-        ...data.measurements.map((m) => measurements.put(m)),
-        ...data.goals.map((g) => goals.put(g)),
-        settings.put(data.settings, SETTINGS_KEY),
-        tx.done,
-      ]);
+      await withDb((d) => writeAll(d, data));
     },
   };
+}
+
+/** Replaces every store's contents with `data` in one transaction, so a failure leaves the old data intact. */
+async function writeAll(db: IDBPDatabase<Schema>, data: AppData) {
+  const tx = db.transaction(['exercises', 'plans', 'workouts', 'measurements', 'goals', 'settings'], 'readwrite');
+  const exercises = tx.objectStore('exercises');
+  const plans = tx.objectStore('plans');
+  const workouts = tx.objectStore('workouts');
+  const measurements = tx.objectStore('measurements');
+  const goals = tx.objectStore('goals');
+  const settings = tx.objectStore('settings');
+  await Promise.all([
+    exercises.clear(),
+    plans.clear(),
+    workouts.clear(),
+    measurements.clear(),
+    goals.clear(),
+    ...data.exercises.map((e) => exercises.put(e)),
+    ...data.plans.map((p) => plans.put(p)),
+    ...data.workouts.map((w) => workouts.put(w)),
+    ...data.measurements.map((m) => measurements.put(m)),
+    ...data.goals.map((g) => goals.put(g)),
+    settings.put(data.settings, SETTINGS_KEY),
+    tx.done,
+  ]);
 }
