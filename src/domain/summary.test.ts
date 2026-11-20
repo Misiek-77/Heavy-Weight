@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { plateLoad } from './plates';
 import { SEED_EXERCISES } from './seed';
-import { dayKey, monthGrid, muscleLoad, startOfWeek, summarize, trainingDays } from './summary';
+import { dayKey, monthGrid, muscleLoad, startOfWeek, summarize, trainingDays, weeklyLoad } from './summary';
 import { PLAN_TEMPLATES, plansFromTemplate } from './templates';
 import type { Exercise, Workout, WorkoutSet } from './types';
 
@@ -128,5 +128,38 @@ describe('plan templates', () => {
     expect(all.map((p) => p.name)).toEqual(['FBW A', 'FBW B']);
     expect(all[0].createdAt < all[1].createdAt).toBe(true);
     expect(plansFromTemplate(fbw, [all[0]], '2026-03-18T10:00:00.000Z').map((p) => p.name)).toEqual(['FBW B']);
+  });
+});
+
+describe('weekly load', () => {
+  const ex = (id: string, muscleGroup: 'klatka' | 'nogi'): Exercise => ({ id, name: id, muscleGroup, equipment: 'sztanga', custom: false, archived: false, updatedAt: '' });
+  const exercises = [ex('bench', 'klatka'), ex('squat', 'nogi')];
+  const at = (y: number, m: number, d: number, entries: Workout['entries']): Workout => {
+    const iso = new Date(y, m, d, 18).toISOString();
+    return { id: iso, name: 'x', startedAt: iso, finishedAt: iso, updatedAt: iso, entries };
+  };
+  const workouts = [
+    // Wednesday 18 Nov 2026 (this week)
+    at(2026, 10, 18, [
+      { exerciseId: 'bench', sets: [{ weight: 40, reps: 10, done: true, kind: 'warmup' }, { weight: 80, reps: 5, done: true }, { weight: 80, reps: 5, done: false }] },
+      { exerciseId: 'squat', sets: [{ weight: 100, reps: 5, done: true }] },
+    ]),
+    // Monday 2 Nov 2026 (two weeks back)
+    at(2026, 10, 2, [{ exerciseId: 'bench', sets: [{ weight: 70, reps: 10, done: true }] }]),
+    // Long ago: outside the window
+    at(2026, 0, 5, [{ exerciseId: 'bench', sets: [{ weight: 60, reps: 10, done: true }] }]),
+  ];
+  const now = new Date(2026, 10, 20, 12);
+
+  it('lists every week oldest first, with empty weeks as zeros', () => {
+    expect(weeklyLoad(workouts, exercises, now, 3, null)).toEqual([
+      { week: '2026-11-02', sets: 1, volume: 700 },
+      { week: '2026-11-09', sets: 0, volume: 0 },
+      { week: '2026-11-16', sets: 2, volume: 900 },
+    ]);
+  });
+
+  it('counts only the chosen muscle group', () => {
+    expect(weeklyLoad(workouts, exercises, now, 1, 'nogi')).toEqual([{ week: '2026-11-16', sets: 1, volume: 500 }]);
   });
 });

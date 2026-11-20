@@ -104,9 +104,9 @@ describe('warm-up sets', () => {
     expect(exerciseRecords(history, 'bench').maxWeight?.weight).toBe(100);
     expect(progressSeries(history, 'bench')[0].value).toBeCloseTo(epley1RM(100, 5));
   });
-  it('still show up as the last performance and in the volume', () => {
+  it('still show up as the last performance, but not in the volume', () => {
     expect(lastPerformance(history, 'bench')).toHaveLength(2);
-    expect(workoutVolume(history[0])).toBe(700);
+    expect(workoutVolume(history[0])).toBe(500);
   });
 });
 

@@ -1,9 +1,10 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { guideFor } from '../domain/guides';
 import { lastPerformance, liveRecord, newRecordExerciseIds } from '../domain/stats';
-import { SET_KINDS, type Workout, type WorkoutSet } from '../domain/types';
+import { SET_KINDS, type Workout, type WorkoutEntry, type WorkoutSet } from '../domain/types';
 import {
   addEntry,
+  addWarmup,
   addSet,
   finishWorkout,
   removeEntry,
@@ -42,6 +43,10 @@ function Clock({ startedAt }: { startedAt: string }) {
     </p>
   );
 }
+
+/** Warm-up sets can be suggested once a working weight is typed and none have been added yet. */
+const canWarmUp = (entry: WorkoutEntry, timed: boolean) =>
+  !timed && entry.sets.some((s) => s.weight > 0 && !s.done) && !entry.sets.some((s) => s.kind === 'warmup');
 
 type Dialog = 'picker' | 'finish' | 'empty' | 'cancel' | null;
 
@@ -258,6 +263,19 @@ export function ActiveWorkout({ workout, onFinished }: { workout: Workout; onFin
                     onClick={() => setPlates((entry.sets.find((s) => !s.done) ?? entry.sets.at(-1))?.weight ?? 0)}
                   >
                     Talerze
+                  </button>
+                )}
+                {canWarmUp(entry, timed) && (
+                  <button
+                    type="button"
+                    className="link-btn"
+                    onClick={() => {
+                      // The empty bar opens the warm-up with a barbell: 20 kg, or a 45 lb bar.
+                      const bar = exercise?.equipment === 'sztanga' ? fromUnit(weightUnit() === 'lb' ? 45 : 20) : 0;
+                      save(addWarmup(workout, entryIndex, { bar, step: weightStep() }));
+                    }}
+                  >
+                    Rozgrzewka
                   </button>
                 )}
                 <button type="button" className="link-btn" onClick={() => setSwapIndex(entryIndex)}>

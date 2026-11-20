@@ -179,3 +179,50 @@ export function finishWorkout(w: Workout, finishedAt: string): Workout | null {
   const { note, ...rest } = w;
   return { ...rest, ...cleanNote(note), entries, finishedAt, updatedAt: finishedAt };
 }
+
+/** Share of the working weight and repetitions for each warm-up step, lightest first. */
+const WARMUP_STEPS: [share: number, reps: number][] = [
+  [0.4, 8],
+  [0.6, 5],
+  [0.8, 3],
+];
+
+/**
+ * Warm-up sets for a working weight: the empty bar for 10 (when there is a bar), then about 40, 60 and 80%
+ * of the working weight with fewer repetitions each time. Weights are rounded down to what can be loaded
+ * (`step`), and a step that would repeat the one before, or reach the working weight, is left out.
+ */
+export function warmupSets(workWeight: number, { bar, step }: { bar: number; step: number }): WorkoutSet[] {
+  if (workWeight <= Math.max(bar, 0)) return [];
+  const sets: WorkoutSet[] = bar > 0 ? [{ weight: bar, reps: 10, done: false, kind: 'warmup' }] : [];
+  for (const [share, reps] of WARMUP_STEPS) {
+    // Rounded through a whole number of steps, so 0.1 + 0.2 style errors never leave 37.4999.
+    const weight = Math.round(Math.floor((workWeight * share) / step + 1e-9) * step * 1000) / 1000;
+    const below = sets.at(-1)?.weight ?? 0;
+    if (weight <= below || weight <= bar || weight >= workWeight) continue;
+    sets.push({ weight, reps, done: false, kind: 'warmup' });
+  }
+  return sets;
+}
+
+/** Puts warm-up sets for the exercise's first working weight in front of its sets, unless it already has some. */
+export function addWarmup(w: Workout, entryIndex: number, load: { bar: number; step: number }): Workout {
+  const entry = w.entries[entryIndex];
+  if (!entry || entry.sets.some((s) => s.kind === 'warmup')) return w;
+  const work = entry.sets.find((s) => s.weight > 0)?.weight ?? 0;
+  const sets = warmupSets(work, load);
+  if (sets.length === 0) return w;
+  return mapEntry(w, entryIndex, (e) => ({ ...e, sets: [...sets, ...e.sets] }));
+}
+
+/**
+ * A finished workout after it was corrected in the history: sets left at zero repetitions are dropped, an
+ * exercise with no sets left goes too (its superset link passes on as when finishing), notes are trimmed.
+ * Returns null when nothing is left, so the caller can offer to delete the workout instead.
+ */
+export function reviseWorkout(edited: Workout, now: string): Workout | null {
+  const finishedAt = edited.finishedAt ?? now;
+  const kept = { ...edited, entries: edited.entries.map((e) => ({ ...e, sets: e.sets.filter((s) => s.reps > 0).map((s) => ({ ...s, done: true })) })) };
+  const revised = finishWorkout(kept, finishedAt);
+  return revised && { ...revised, name: revised.name.trim() || 'Trening', updatedAt: now };
+}

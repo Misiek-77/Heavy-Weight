@@ -1,13 +1,14 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { newId } from '../domain/id';
-import { dayKey, monthGrid, muscleLoad, summarize, trainingDays } from '../domain/summary';
-import { MEASURES, type Measure, type Measurement } from '../domain/types';
+import { dayKey, monthGrid, muscleLoad, summarize, trainingDays, weeklyLoad } from '../domain/summary';
+import { MEASURES, MUSCLE_GROUPS, type Measure, type Measurement, type MuscleGroup } from '../domain/types';
 import { useStore } from '../state/store';
 import { Header } from '../ui/Chrome';
 import { GoalsSection } from './Goals';
 import { displayWeight, formatDay, formatNumber, formatVolume, fromUnit, plural, toUnit, weightUnit, capitalize } from '../ui/format';
 import { Icon } from '../ui/Icon';
+import { BarChart } from '../ui/BarChart';
 import { LineChart } from '../ui/LineChart';
 import { MEASURE_INFO } from '../ui/measures';
 import { NumberField } from '../ui/NumberField';
@@ -80,6 +81,7 @@ export function ProgressScreen() {
       <GoalsSection now={now} />
       <Calendar now={now} />
       <MuscleGroups now={now} />
+      <WeeklyLoad now={now} />
       <BodyMeasurements now={now} />
     </main>
   );
@@ -170,6 +172,62 @@ function MuscleGroups({ now }: { now: Date }) {
           </li>
         ))}
       </ul>
+    </section>
+  );
+}
+
+/** How many weeks the weekly chart covers. */
+const CHART_WEEKS = 12;
+
+/** Working sets or kilograms moved, week by week, for all muscles or one group. */
+function WeeklyLoad({ now }: { now: Date }) {
+  const { workouts, exercises } = useStore();
+  const [group, setGroup] = useState<MuscleGroup | null>(null);
+  const [metric, setMetric] = useState<'sets' | 'volume'>('sets');
+  const weeks = useMemo(() => weeklyLoad(workouts, exercises, now, CHART_WEEKS, group), [workouts, exercises, now, group]);
+  const points = weeks.map((w) => ({ date: w.week, value: metric === 'sets' ? w.sets : toUnit(w.volume) }));
+  const unit = metric === 'sets' ? 'ser.' : weightUnit();
+  const thisWeek = points.at(-1)?.value ?? 0;
+  const done = weeks.filter((w) => w.sets > 0);
+  const average = done.length ? done.reduce((sum, w) => sum + (metric === 'sets' ? w.sets : toUnit(w.volume)), 0) / done.length : 0;
+
+  return (
+    <section className="section">
+      <h2 className="label">Tydzień po tygodniu · ostatnie {CHART_WEEKS} tygodni</h2>
+      <div className="chips" role="group" aria-label="Partia mięśni na wykresie">
+        <button type="button" className="chip" aria-pressed={group === null} onClick={() => setGroup(null)}>
+          Wszystkie
+        </button>
+        {MUSCLE_GROUPS.filter((g) => g !== 'inne').map((g) => (
+          <button key={g} type="button" className="chip" aria-pressed={group === g} onClick={() => setGroup(g)}>
+            {capitalize(g)}
+          </button>
+        ))}
+      </div>
+      <div className="segmented" role="group" aria-label="Miara na wykresie" style={{ marginTop: 10 }}>
+        <button type="button" aria-pressed={metric === 'sets'} onClick={() => setMetric('sets')}>
+          Serie
+        </button>
+        <button type="button" aria-pressed={metric === 'volume'} onClick={() => setMetric('volume')}>
+          Objętość ({weightUnit()})
+        </button>
+      </div>
+      {done.length === 0 ? (
+        <p className="empty">Brak serii w tym okresie.</p>
+      ) : (
+        <>
+          <div className="stats" style={{ marginTop: 16 }}>
+            <Stat value={metric === 'sets' ? thisWeek : formatVolume(weeks.at(-1)!.volume)} unit={metric === 'sets' ? undefined : weightUnit()} label="Ten tydzień" />
+            <Stat
+              value={metric === 'sets' ? formatNumber(Math.round(average * 10) / 10) : formatNumber(Math.round(average))}
+              unit={metric === 'sets' ? undefined : weightUnit()}
+              label="Średnio na tydzień"
+            />
+            <span />
+          </div>
+          <BarChart points={points} unit={unit} />
+        </>
+      )}
     </section>
   );
 }

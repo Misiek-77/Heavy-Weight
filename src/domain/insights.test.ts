@@ -62,7 +62,7 @@ describe('compareMonths', () => {
       exercises,
       NOW,
     );
-    expect(current).toMatchObject({ workouts: 2, volume: 2000, sets: 3 });
+    expect(current).toMatchObject({ workouts: 2, volume: 1600, sets: 3 });
     expect(current.setsByGroup).toMatchObject({ klatka: 2, nogi: 1, plecy: 0 });
     expect(previous).toMatchObject({ workouts: 1, volume: 450, sets: 1 });
   });

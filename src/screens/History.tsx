@@ -2,13 +2,26 @@ import { useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { finishedWorkouts, workoutVolume } from '../domain/stats';
 import type { Workout } from '../domain/types';
-import { repeatWorkout } from '../domain/workout';
+import { removeEntry, removeSet, repeatWorkout, reviseWorkout, setEntryNote, updateSet } from '../domain/workout';
 import { useStore } from '../state/store';
 import { Header } from '../ui/Chrome';
 import { ExerciseThumb } from '../ui/ExerciseThumb';
 import { SET_KIND_INFO } from '../ui/setKinds';
-import { formatDay, formatDuration, formatEntrySet, formatRange, formatVolume, plural, weightStep, weightUnit } from '../ui/format';
+import {
+  displayWeight,
+  formatDay,
+  formatDuration,
+  formatEntrySet,
+  formatRange,
+  formatVolume,
+  fromUnit,
+  plural,
+  weightStep,
+  weightUnit,
+} from '../ui/format';
 import { Icon } from '../ui/Icon';
+import { NoteField } from '../ui/NoteField';
+import { NumberField } from '../ui/NumberField';
 import { Confirm } from '../ui/Sheet';
 
 const durationOf = (w: Workout) => Date.parse(w.finishedAt ?? w.startedAt) - Date.parse(w.startedAt);
@@ -79,12 +92,18 @@ export function WorkoutDetail() {
   const store = useStore();
   const navigate = useNavigate();
   const [confirming, setConfirming] = useState(false);
+  const [editing, setEditing] = useState(false);
   const workout = store.workouts.find((w) => w.id === id && w.finishedAt);
   if (!workout) return <Navigate to="/historia" replace />;
+  // Keyed by the saved version, so a fresh draft starts every time editing opens.
+  if (editing) return <WorkoutEditor key={workout.updatedAt} workout={workout} onDone={() => setEditing(false)} />;
 
   return (
     <main className="screen">
       <Header back="/historia">
+        <button type="button" className="btn btn-small btn-quiet" onClick={() => setEditing(true)}>
+          Edytuj
+        </button>
         <button type="button" className="icon-btn" aria-label="Usuń trening" onClick={() => setConfirming(true)}>
           <Icon name="trash" />
         </button>
@@ -174,6 +193,106 @@ export function WorkoutDetail() {
         message="Trening zniknie z historii i przestanie liczyć się do rekordów. Tej operacji nie można cofnąć."
         confirmLabel="Usuń trening"
       />
+    </main>
+  );
+}
+
+/** Corrects a finished workout: its name and note, each set's weight and repetitions, and which sets or exercises stay. */
+function WorkoutEditor({ workout, onDone }: { workout: Workout; onDone(): void }) {
+  const store = useStore();
+  const [draft, setDraft] = useState(workout);
+  const revised = reviseWorkout(draft, new Date().toISOString());
+
+  return (
+    <main className="screen">
+      <Header>
+        <button type="button" className="btn btn-small btn-quiet" onClick={onDone}>
+          Anuluj
+        </button>
+        <button
+          type="button"
+          className="btn btn-small btn-primary"
+          style={{ marginRight: 10 }}
+          disabled={!revised}
+          onClick={() => {
+            if (revised) store.saveWorkout(revised);
+            onDone();
+          }}
+        >
+          Zapisz
+        </button>
+      </Header>
+      <input
+        className="workout-name"
+        aria-label="Nazwa treningu"
+        value={draft.name}
+        maxLength={60}
+        onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+      />
+      <p className="subtitle">{formatDay(draft.startedAt)} · popraw wyniki i zapisz</p>
+      <NoteField label="Notatka do treningu" placeholder="Notatka do treningu" value={draft.note ?? ''} onChange={(note) => setDraft({ ...draft, note })} />
+      {!revised && <p className="note error">Nie zostało nic do zapisania. Jeśli trening jest zbędny, usuń go zamiast edytować.</p>}
+
+      {draft.entries.map((entry, entryIndex) => {
+        const name = store.exerciseName(entry.exerciseId);
+        const timed = store.timedIds.has(entry.exerciseId);
+        return (
+          <section className="entry" key={`${entryIndex}-${entry.exerciseId}`}>
+            <div className="entry-head">
+              <h2 className="thumb-link">
+                <ExerciseThumb exerciseId={entry.exerciseId} />
+                {name}
+              </h2>
+              <button type="button" className="icon-btn" aria-label={`Usuń ćwiczenie: ${name}`} onClick={() => setDraft(removeEntry(draft, entryIndex))}>
+                <Icon name="close" />
+              </button>
+            </div>
+            <div className="sets">
+              <div className="sets-head" aria-hidden="true">
+                <span>#</span>
+                <span>Rodzaj</span>
+                <span>{weightUnit()}</span>
+                <span>{timed ? 'Sek.' : 'Powt.'}</span>
+                <span />
+              </div>
+              {entry.sets.map((set, setIndex) => (
+                <div className="set-row" key={setIndex}>
+                  <span className="set-index">{setIndex + 1}</span>
+                  <span className="set-prev">{set.kind && set.kind !== 'normal' ? SET_KIND_INFO[set.kind].label : ''}</span>
+                  <NumberField
+                    label={`${name}, seria ${setIndex + 1}, ciężar w ${weightUnit()}`}
+                    value={displayWeight(set.weight)}
+                    onChange={(weight) => setDraft(updateSet(draft, entryIndex, setIndex, { weight: fromUnit(weight) }))}
+                  />
+                  <NumberField
+                    integer
+                    label={`${name}, seria ${setIndex + 1}, ${timed ? 'czas w sekundach' : 'powtórzenia'}`}
+                    value={set.reps}
+                    onChange={(reps) => setDraft(updateSet(draft, entryIndex, setIndex, { reps }))}
+                  />
+                  <button
+                    type="button"
+                    className="icon-btn"
+                    aria-label={`${name}: usuń serię ${setIndex + 1}`}
+                    onClick={() => setDraft(removeSet(draft, entryIndex, setIndex))}
+                  >
+                    <Icon name="close" />
+                  </button>
+                </div>
+              ))}
+            </div>
+            <NoteField
+              label={`Notatka do ćwiczenia: ${name}`}
+              placeholder="Notatka do ćwiczenia"
+              value={entry.note ?? ''}
+              onChange={(note) => setDraft(setEntryNote(draft, entryIndex, note))}
+            />
+          </section>
+        );
+      })}
+      <p className="muted small" style={{ marginTop: 16 }}>
+        Seria z zerem powtórzeń zostanie usunięta, a ćwiczenie bez serii zniknie z treningu. Rekordy przeliczą się same.
+      </p>
     </main>
   );
 }

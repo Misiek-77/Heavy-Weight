@@ -108,3 +108,37 @@ export function muscleLoad(workouts: Workout[], exercises: Exercise[], now: Date
   }
   return [...load.values()];
 }
+
+export interface WeekLoad {
+  /** Monday the week starts on, as a day key. */
+  week: string;
+  /** Done working sets (warm-ups excluded). */
+  sets: number;
+  /** Kilograms moved in those sets; timed exercises count no weight. */
+  volume: number;
+}
+
+/**
+ * Work done in each of the last `weeks` Monday-based weeks, oldest first, for one muscle group or (with
+ * `group` null) for all of them. Weeks without training are included with zeros, so gaps show as gaps.
+ */
+export function weeklyLoad(workouts: Workout[], exercises: Exercise[], now: Date, weeks: number, group: MuscleGroup | null): WeekLoad[] {
+  const groupOf = new Map(exercises.map((e) => [e.id, e.muscleGroup]));
+  const timed = new Set(exercises.filter((e) => e.timed).map((e) => e.id));
+  const thisWeek = startOfWeek(now);
+  const rows = Array.from({ length: weeks }, (_, i) => ({ week: dayKey(addDays(thisWeek, (i - weeks + 1) * 7)), sets: 0, volume: 0 }));
+  const byWeek = new Map(rows.map((r) => [r.week, r]));
+  for (const w of finishedWorkouts(workouts)) {
+    const row = byWeek.get(dayKey(startOfWeek(startedOn(w))));
+    if (!row) continue;
+    for (const entry of w.entries) {
+      if (group && (groupOf.get(entry.exerciseId) ?? 'inne') !== group) continue;
+      for (const s of entry.sets) {
+        if (!s.done || s.kind === 'warmup') continue;
+        row.sets++;
+        if (!timed.has(entry.exerciseId)) row.volume += s.weight * s.reps;
+      }
+    }
+  }
+  return rows;
+}

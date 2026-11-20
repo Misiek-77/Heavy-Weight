@@ -25,9 +25,14 @@ const best1RM = (sets: WorkoutSet[]) => Math.max(0, ...sets.map((s) => epley1RM(
 type Ids = ReadonlySet<string>;
 const NONE: Ids = new Set();
 
-/** Kilograms moved. Timed exercises are left out: their sets count seconds, not repetitions. */
+/**
+ * Kilograms moved in working sets. Warm-ups are left out, as everywhere in progress and records, and so are
+ * timed exercises, whose sets count seconds rather than repetitions.
+ */
 export function workoutVolume(w: Workout, timedIds: Ids = NONE): number {
-  return volume(w.entries.filter((e) => !timedIds.has(e.exerciseId)).flatMap((e) => doneSets(e.sets)));
+  return volume(
+    w.entries.filter((e) => !timedIds.has(e.exerciseId)).flatMap((e) => doneSets(e.sets).filter((s) => s.kind !== 'warmup')),
+  );
 }
 
 /** Finished workouts, newest first. */

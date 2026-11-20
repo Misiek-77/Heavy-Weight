@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { exerciseRecords, liveRecord, newRecordExerciseIds, progressSeries, workoutVolume } from './stats';
 import type { Plan, Workout, WorkoutSet } from './types';
-import { addEntry, addSet, createWorkout, finishWorkout, removeEntry, repeatWorkout, shouldIncrease, swapExercise, toggleLink, updateSet } from './workout';
+import { addEntry, addSet, createWorkout, finishWorkout, removeEntry, repeatWorkout, reviseWorkout, shouldIncrease, swapExercise, toggleLink, updateSet } from './workout';
 
 const NOW = '2026-02-01T10:00:00.000Z';
 const set = (weight: number, reps: number, done = true): WorkoutSet => ({ weight, reps, done });
@@ -199,5 +199,33 @@ describe('repeating a past workout', () => {
   it('prefills from history and leaves every set to be done', () => {
     const w = repeatWorkout(past, [past], NOW);
     expect(w.entries[0].sets).toEqual([{ ...set(40, 10, false), kind: 'warmup' }, set(80, 8, false), set(80, 8, false)]);
+  });
+});
+
+describe('correcting a finished workout', () => {
+  const done: Workout = {
+    id: 'd',
+    name: 'Góra',
+    startedAt: '2026-01-10T10:00:00.000Z',
+    finishedAt: '2026-01-10T11:00:00.000Z',
+    updatedAt: '2026-01-10T11:00:00.000Z',
+    entries: [
+      { exerciseId: 'a', linkNext: true, sets: [set(50, 10), set(50, 0)] },
+      { exerciseId: 'b', linkNext: true, sets: [set(20, 0)] },
+      { exerciseId: 'c', sets: [set(30, 12)], note: '  ok  ' },
+    ],
+  };
+
+  it('drops sets typed down to zero repetitions and exercises left empty, keeping the dates', () => {
+    const r = reviseWorkout({ ...done, name: '  ' }, NOW)!;
+    expect(r.entries.map((e) => [e.exerciseId, e.sets.length, !!e.linkNext, e.note])).toEqual([
+      ['a', 1, true, undefined],
+      ['c', 1, false, 'ok'],
+    ]);
+    expect(r).toMatchObject({ name: 'Trening', startedAt: done.startedAt, finishedAt: done.finishedAt, updatedAt: NOW });
+  });
+
+  it('returns null when nothing is left', () => {
+    expect(reviseWorkout({ ...done, entries: [{ exerciseId: 'a', sets: [set(50, 0)] }] }, NOW)).toBeNull();
   });
 });
