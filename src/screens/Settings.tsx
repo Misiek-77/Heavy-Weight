@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { parseBackup, serializeBackup } from '../data/backup';
+import { parseBackup, serializeBackup, serializeCombined } from '../data/backup';
 import { historyCsv } from '../data/csv';
 import { importHistoryCsv } from '../data/importCsv';
 import type { AppData } from '../domain/types';
@@ -23,6 +23,8 @@ export function SettingsScreen() {
   const systemDark = useSystemDark();
   const [theme, setThemeState] = useState<Theme>(getTheme);
   const [pending, setPending] = useState<AppData | null>(null);
+  /** The file being imported also holds the nutrition diary, which is restored in that app. */
+  const [pendingCombined, setPendingCombined] = useState(false);
   const [message, setMessage] = useState<Message>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const csvInput = useRef<HTMLInputElement>(null);
@@ -42,19 +44,25 @@ export function SettingsScreen() {
   const setRest = (restSeconds: number) =>
     store.saveSettings({ ...store.settings, restSeconds: Math.min(REST_MAX, Math.max(REST_MIN, restSeconds)) });
 
-  async function exportData() {
+  async function exportData(both = false) {
     const { exercises, plans, workouts, measurements, goals, settings } = store;
     const now = new Date();
+    const data = { exercises, plans, workouts, measurements, goals, settings };
+    const combined = both ? await serializeCombined(data, now.toISOString()) : null;
     const result = await saveFile(
-      new Blob([serializeBackup({ exercises, plans, workouts, measurements, goals, settings }, now.toISOString())], { type: 'application/json' }),
-      `trening-kopia-${now.toISOString().slice(0, 10)}.json`,
-      'Kopia zapasowa treningów',
+      new Blob([combined ? combined.text : serializeBackup(data, now.toISOString())], { type: 'application/json' }),
+      `${both ? 'trening-i-jadlospis' : 'trening'}-kopia-${now.toISOString().slice(0, 10)}.json`,
+      both ? 'Kopia zapasowa obu aplikacji' : 'Kopia zapasowa treningów',
     );
     if (result === 'cancelled') return;
     // Remembered so the backup reminder knows the data is safe for a while.
     const { backupSnoozedUntil: _snooze, ...rest } = settings;
     store.saveSettings({ ...rest, lastBackupAt: now.toISOString() });
-    setMessage({ kind: 'ok', text: result === 'shared' ? 'Kopia zapasowa została zapisana.' : 'Kopia zapasowa została pobrana.' });
+    const done = result === 'shared' ? 'Kopia zapasowa została zapisana.' : 'Kopia zapasowa została pobrana.';
+    setMessage({
+      kind: 'ok',
+      text: combined && !combined.withNutrition ? `${done} Jadłospis nie był otwierany na tym urządzeniu, więc w pliku są tylko treningi.` : done,
+    });
   }
 
   async function exportCsv() {
@@ -72,6 +80,7 @@ export function SettingsScreen() {
     const result = parseBackup(await file.text());
     if (result.ok) {
       setMessage(null);
+      setPendingCombined(!!result.combined?.withNutrition);
       setPending(result.data);
     } else {
       setMessage({ kind: 'error', text: result.error });
@@ -81,7 +90,12 @@ export function SettingsScreen() {
   async function importData(data: AppData) {
     try {
       await store.replaceAll(data);
-      setMessage({ kind: 'ok', text: 'Dane zostały zaimportowane.' });
+      setMessage({
+        kind: 'ok',
+        text: pendingCombined
+          ? 'Treningi zostały zaimportowane. Jadłospis z tego pliku wczytasz w aplikacji Jadłospis: Cele → Importuj.'
+          : 'Dane zostały zaimportowane.',
+      });
     } catch {
       setMessage({ kind: 'error', text: 'Nie udało się zapisać importowanych danych. Dotychczasowe dane są nienaruszone.' });
     }
@@ -185,6 +199,12 @@ export function SettingsScreen() {
             Importuj
           </button>
         </div>
+        <button type="button" className="btn btn-block" style={{ marginTop: 8 }} onClick={() => void exportData(true)}>
+          Eksportuj obie aplikacje (z Jadłospisem)
+        </button>
+        <p className="muted small" style={{ marginTop: 8 }}>
+          Jeden plik z treningami i jadłospisem z tego telefonu. Wczytany tutaj przywraca treningi, a wczytany w Jadłospisie — dziennik jedzenia.
+        </p>
         <p className="muted small" style={{ margin: '16px 0 12px' }}>
           Historię treningów możesz też pobrać jako arkusz (CSV) do Excela lub Arkuszy Google. To tylko odczyt, nie
           zastępuje kopii zapasowej.

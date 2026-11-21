@@ -249,7 +249,7 @@ function PlanForm({ existing }: { existing?: Plan }) {
                       aria-pressed={!!item.linkNext}
                       onClick={() => patch(index, { linkNext: !item.linkNext })}
                     >
-                      {item.linkNext ? 'Superset z następnym · rozłącz' : 'Połącz w superset z następnym'}
+                      {item.linkNext ? 'Super seria z następnym · rozłącz' : 'Połącz w super serię z następnym'}
                     </button>
                   )}
                 </li>

@@ -142,7 +142,7 @@ export function WorkoutDetail() {
             <p className="entry-target">
               {[
                 formatRange(entry.repMin, entry.repMax, store.timedIds.has(entry.exerciseId)) && `Cel: ${formatRange(entry.repMin, entry.repMax, store.timedIds.has(entry.exerciseId))}`,
-                entry.linkNext && 'superset z następnym',
+                entry.linkNext && 'super seria z następnym',
               ]
                 .filter(Boolean)
                 .join(' · ')}

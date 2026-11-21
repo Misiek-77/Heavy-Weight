@@ -13,14 +13,34 @@ import {
   type WorkoutSet,
 } from '../domain/types';
 
+import { COMBINED_APP, readDatabase } from './otherApp';
+
 const APP = 'trening';
 const VERSION = 1;
 
+const backupObject = (data: AppData, now: string) => ({ app: APP, version: VERSION, exportedAt: now, data });
+
 export function serializeBackup(data: AppData, now: string): string {
-  return JSON.stringify({ app: APP, version: VERSION, exportedAt: now, data }, null, 2);
+  return JSON.stringify(backupObject(data, now), null, 2);
 }
 
-export type BackupResult = { ok: true; data: AppData } | { ok: false; error: string };
+/**
+ * One file with both apps: these workouts, and the nutrition diary read from its database on this device (left
+ * out when Jadłospis was never opened here). Each app restores its own part of the file.
+ */
+export async function serializeCombined(data: AppData, now: string): Promise<{ text: string; withNutrition: boolean }> {
+  const n = await readDatabase('jadlospis');
+  const nutrition = n && {
+    app: 'jadlospis',
+    version: 1,
+    exportedAt: now,
+    data: { products: n.products ?? [], entries: n.entries ?? [], weights: n.weights ?? [], water: n.water ?? [], ...(n.settings?.[0] ? { settings: n.settings[0] } : {}) },
+  };
+  const text = JSON.stringify({ app: COMBINED_APP, version: 1, exportedAt: now, trening: backupObject(data, now), jadlospis: nutrition }, null, 2);
+  return { text, withNutrition: !!nutrition };
+}
+
+export type BackupResult = { ok: true; data: AppData; combined?: { withNutrition: boolean } } | { ok: false; error: string };
 
 class Invalid extends Error {}
 
@@ -148,7 +168,14 @@ export function parseBackup(text: string): BackupResult {
   } catch {
     return { ok: false, error: 'To nie jest plik kopii zapasowej (niepoprawny JSON).' };
   }
+  let combined: { withNutrition: boolean } | undefined;
   try {
+    if (isObject(file) && file.app === COMBINED_APP) {
+      combined = { withNutrition: isObject(file.jadlospis) };
+      file = file.trening;
+      check(isObject(file), 'W tym pliku nie ma danych Treningu.');
+    }
+    check(isObject(file) && file.app !== 'jadlospis', 'To kopia aplikacji Jadłospis. Zaimportuj ją w tamtej aplikacji.');
     check(isObject(file) && file.app === APP, 'To nie jest plik kopii zapasowej tej aplikacji.');
     check(file.version === VERSION, 'Ta kopia pochodzi z nowszej wersji aplikacji.');
     const d = file.data;
@@ -194,6 +221,7 @@ export function parseBackup(text: string): BackupResult {
           ...(isText(settings.lastBackupAt) ? { lastBackupAt: settings.lastBackupAt } : {}),
         },
       },
+      ...(combined ? { combined } : {}),
     };
   } catch (e) {
     if (e instanceof Invalid) return { ok: false, error: e.message };

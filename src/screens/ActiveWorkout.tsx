@@ -317,13 +317,13 @@ export function ActiveWorkout({ workout, onFinished }: { workout: Workout; onFin
                     aria-pressed={!!entry.linkNext}
                     onClick={() => save(toggleLink(workout, entryIndex))}
                   >
-                    {entry.linkNext ? 'Rozłącz superset' : 'Superset z następnym'}
+                    {entry.linkNext ? 'Rozłącz super serię' : 'Super seria z następnym'}
                   </button>
                 )}
               </div>
             </section>
             {entry.linkNext && !isLast && (
-              <p className="superset-link">Superset · bez przerwy, od razu następne ćwiczenie</p>
+              <p className="superset-link">Super seria · bez przerwy, od razu następne ćwiczenie</p>
             )}
           </Fragment>
         );
@@ -414,6 +414,17 @@ export function ActiveWorkout({ workout, onFinished }: { workout: Workout; onFin
               </li>
             );
           })}
+          {kindTarget && (
+            <SupersetChoice
+              workout={workout}
+              entryIndex={kindTarget.entryIndex}
+              name={store.exerciseName}
+              onToggle={(i) => {
+                save(toggleLink(workout, i));
+                setKindTarget(null);
+              }}
+            />
+          )}
         </ul>
       </Sheet>
       <Sheet open={guideId !== null} onClose={() => setGuideId(null)} title={guideId ? store.exerciseName(guideId) : ''}>
@@ -452,5 +463,55 @@ export function ActiveWorkout({ workout, onFinished }: { workout: Workout; onFin
         cancelLabel="Wróć do treningu"
       />
     </main>
+  );
+}
+
+/**
+ * "Łączona (super seria)" among the set kinds: a superset joins whole exercises, done in turns with the rest
+ * only after both, so choosing it links this exercise with the next one (the last one with the one before).
+ */
+function SupersetChoice({
+  workout,
+  entryIndex,
+  name,
+  onToggle,
+}: {
+  workout: Workout;
+  entryIndex: number;
+  name(exerciseId: string): string;
+  onToggle(linkIndex: number): void;
+}) {
+  const entries = workout.entries;
+  const entry = entries[entryIndex];
+  const before = entries[entryIndex - 1];
+  if (!entry) return null;
+  // The link to toggle: this exercise's own, or the previous one's when this is the last exercise.
+  const linkIndex = entry.linkNext ? entryIndex : before?.linkNext ? entryIndex - 1 : entryIndex < entries.length - 1 ? entryIndex : entryIndex - 1;
+  const partner = entries[linkIndex === entryIndex ? entryIndex + 1 : entryIndex - 1];
+  const linked = linkIndex >= 0 && !!entries[linkIndex]?.linkNext;
+  const disabled = entries.length < 2 || linkIndex < 0;
+  return (
+    <li>
+      <button type="button" className="item" aria-pressed={linked} disabled={disabled} onClick={() => onToggle(linkIndex)}>
+        <span className="set-index kind-superset" aria-hidden="true">
+          S
+        </span>
+        <span className="item-main">
+          <span className="item-title">Łączona (super seria)</span>
+          <span className="item-sub">
+            {disabled
+              ? 'Dodaj drugie ćwiczenie, żeby połączyć je w super serię.'
+              : linked
+                ? `Połączone z: ${name(partner.exerciseId)}. Dotknij, żeby rozłączyć.`
+                : `Na zmianę z: ${name(partner.exerciseId)}, przerwa dopiero po obu ćwiczeniach.`}
+          </span>
+        </span>
+        {linked && (
+          <span className="item-end">
+            <Icon name="check" />
+          </span>
+        )}
+      </button>
+    </li>
   );
 }

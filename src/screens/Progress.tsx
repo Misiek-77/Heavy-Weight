@@ -13,6 +13,7 @@ import { LineChart } from '../ui/LineChart';
 import { MEASURE_INFO } from '../ui/measures';
 import { NumberField } from '../ui/NumberField';
 import { useToday } from '../ui/useToday';
+import { useNutritionWeights } from '../data/nutritionLink';
 import { Confirm, Sheet } from '../ui/Sheet';
 
 const monthTitle = new Intl.DateTimeFormat('pl-PL', { month: 'long', year: 'numeric' });
@@ -241,9 +242,22 @@ function BodyMeasurements({ now }: { now: Date }) {
   const sorted = useMemo(() => [...store.measurements].sort((a, b) => a.date.localeCompare(b.date)), [store.measurements]);
   const shown = (m: Measure, value: number) => (m === 'weight' ? toUnit(value) : value);
   const unitOf = (m: Measure) => (m === 'weight' ? weightUnit() : MEASURE_INFO[m].unit);
-  const points = sorted
-    .filter((m) => m.values[measure] !== undefined)
-    .map((m) => ({ date: m.date, value: shown(measure, m.values[measure]!) }));
+  const fromDiary = useNutritionWeights();
+  // Weight logged in Jadłospis counts too: one reading a day, the most recently changed one winning.
+  const merged = useMemo(() => {
+    if (measure !== 'weight') return null;
+    const byDay = new Map<string, { kg: number; at: string; diary: boolean }>();
+    for (const m of sorted) if (m.values.weight !== undefined) byDay.set(m.date, { kg: m.values.weight, at: m.updatedAt, diary: false });
+    for (const w of fromDiary) {
+      const had = byDay.get(w.date);
+      if (!had || had.at < w.updatedAt) byDay.set(w.date, { kg: w.kg, at: w.updatedAt, diary: true });
+    }
+    return [...byDay.entries()].sort(([a], [b]) => a.localeCompare(b));
+  }, [measure, sorted, fromDiary]);
+  const fromDiaryShown = merged?.some(([, v]) => v.diary) ?? false;
+  const points = merged
+    ? merged.map(([date, v]) => ({ date, value: toUnit(v.kg) }))
+    : sorted.filter((m) => m.values[measure] !== undefined).map((m) => ({ date: m.date, value: shown(measure, m.values[measure]!) }));
   const { label } = MEASURE_INFO[measure];
   const unit = unitOf(measure);
   const latest = points.at(-1);
@@ -276,6 +290,7 @@ function BodyMeasurements({ now }: { now: Date }) {
             <span />
           </div>
           {points.length > 1 && <LineChart points={points} unit={unit} />}
+          {fromDiaryShown && <p className="muted small">Razem z wagą zapisaną w Jadłospisie.</p>}
         </>
       ) : (
         <p className="empty">Brak pomiarów: {label.toLowerCase()}.</p>

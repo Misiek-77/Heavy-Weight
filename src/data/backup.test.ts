@@ -108,3 +108,19 @@ describe('reps in reserve in a backup', () => {
     expect(broken.ok && broken.data.workouts[0].entries[0].sets[0]).toEqual({ weight: 50, reps: 5, done: true });
   });
 });
+
+describe('a backup holding both apps', () => {
+  it('restores its own part and says whether the nutrition diary is in it', () => {
+    const own = JSON.parse(serializeBackup(data, NOW));
+    const result = parseBackup(JSON.stringify({ app: 'komplet', version: 1, trening: own, jadlospis: { app: 'jadlospis', data: {} } }));
+    expect(result.ok && result.combined).toEqual({ withNutrition: true });
+    expect(result.ok && result.data.workouts).toHaveLength(1);
+  });
+
+  it('points a nutrition-only file to the other app', () => {
+    const empty = parseBackup(JSON.stringify({ app: 'komplet', version: 1, trening: null, jadlospis: {} }));
+    expect(empty.ok === false && empty.error).toMatch(/Treningu/);
+    const diary = parseBackup(JSON.stringify({ app: 'jadlospis', version: 1, data: {} }));
+    expect(diary.ok === false && diary.error).toMatch(/Jadłospis/);
+  });
+});
