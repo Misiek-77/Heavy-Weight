@@ -13,7 +13,7 @@ export function useNutritionWeights(): WeightReading[] {
   useEffect(() => {
     let alive = true;
     const load = () =>
-      void readDatabase('jadlospis').then((db) => {
+      void readDatabase('jadlospis', ['weights']).then((db) => {
         if (!alive || !db) return;
         const list: WeightReading[] = [];
         for (const w of (db.weights ?? []) as Partial<WeightReading>[]) {

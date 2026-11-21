@@ -29,7 +29,7 @@ export function serializeBackup(data: AppData, now: string): string {
  * out when Jadłospis was never opened here). Each app restores its own part of the file.
  */
 export async function serializeCombined(data: AppData, now: string): Promise<{ text: string; withNutrition: boolean }> {
-  const n = await readDatabase('jadlospis');
+  const n = await readDatabase('jadlospis', ['products', 'entries', 'weights', 'water', 'settings']);
   const nutrition = n && {
     app: 'jadlospis',
     version: 1,
