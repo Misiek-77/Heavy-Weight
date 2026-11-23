@@ -92,6 +92,7 @@ function plan(v: unknown): Plan {
       );
       return { exerciseId: item.exerciseId, targetSets: item.targetSets as number, ...targets(item) };
     }),
+    ...(isText(v.note) ? { note: v.note.slice(0, 500) } : {}),
     createdAt,
     updatedAt: isText(v.updatedAt) ? v.updatedAt : createdAt,
   };

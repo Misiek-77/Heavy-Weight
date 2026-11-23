@@ -26,6 +26,7 @@ const TABS: { to: string; label: string; icon: IconName }[] = [
   { to: '/historia', label: 'Historia', icon: 'history' },
   { to: '/postepy', label: 'Postępy', icon: 'progress' },
   { to: '/cwiczenia', label: 'Ćwiczenia', icon: 'exercises' },
+  { to: '/dieta', label: 'Dieta', icon: 'today' },
 ];
 
 export function TabBar() {

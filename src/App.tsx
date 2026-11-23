@@ -3,6 +3,7 @@ import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { ExerciseDetail, ExercisesScreen } from './screens/Exercises';
 import { HistoryScreen, WorkoutDetail } from './screens/History';
 import { TrainingScreen } from './screens/TrainingScreen';
+import { NUTRITION_ROUTES } from './nutrition/routes';
 import { useResting } from './state/restTimer';
 import { useStore } from './state/store';
 import { RestBar, TabBar } from './ui/Chrome';
@@ -18,6 +19,7 @@ const RecordsScreen = lazy(() => import('./screens/ProgressDetails').then((m) =>
 const CompareScreen = lazy(() => import('./screens/ProgressDetails').then((m) => ({ default: m.CompareScreen })));
 const PhotosScreen = lazy(() => import('./screens/ProgressDetails').then((m) => ({ default: m.PhotosScreen })));
 const SummaryScreen = lazy(() => import('./screens/Summary').then((m) => ({ default: m.SummaryScreen })));
+const IntervalTimerScreen = lazy(() => import('./screens/IntervalTimer').then((m) => ({ default: m.IntervalTimerScreen })));
 const SettingsScreen = lazy(() => import('./screens/Settings').then((m) => ({ default: m.SettingsScreen })));
 
 export function App() {
@@ -53,6 +55,10 @@ export function App() {
           <Route path="/cwiczenia" element={<ExercisesScreen />} />
           <Route path="/cwiczenia/:id" element={<ExerciseDetail />} />
           <Route path="/ustawienia" element={<SettingsScreen />} />
+          <Route path="/minutnik" element={<IntervalTimerScreen />} />
+          {NUTRITION_ROUTES.map((r) => (
+            <Route key={r.path} path={r.path} element={r.element} />
+          ))}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         </Suspense>

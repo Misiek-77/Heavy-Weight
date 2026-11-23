@@ -44,6 +44,8 @@ export interface Plan {
   id: string;
   name: string;
   items: PlanItem[];
+  /** Free text shown when the plan is started: progression for the week, cues, reminders. */
+  note?: string;
   createdAt: string;
   updatedAt: string;
 }

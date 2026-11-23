@@ -124,3 +124,11 @@ describe('a backup holding both apps', () => {
     expect(diary.ok === false && diary.error).toMatch(/Jadłospis/);
   });
 });
+
+describe('a plan note', () => {
+  it('survives a backup', () => {
+    const withNote = { ...data, plans: [{ ...data.plans[0], note: 'W tym tygodniu +2,5 kg' }] };
+    const result = parseBackup(serializeBackup(withNote, NOW));
+    expect(result.ok && result.data.plans[0].note).toBe('W tym tygodniu +2,5 kg');
+  });
+});

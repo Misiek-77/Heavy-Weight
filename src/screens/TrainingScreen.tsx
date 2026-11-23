@@ -42,6 +42,9 @@ export function TrainingScreen() {
   return (
     <main className="screen">
       <Header>
+        <Link className="icon-btn" to="/minutnik" aria-label="Minutnik interwałowy">
+          <Icon name="timer" />
+        </Link>
         <Link className="icon-btn" to="/ustawienia" aria-label="Ustawienia">
           <Icon name="settings" />
         </Link>
@@ -77,6 +80,7 @@ export function TrainingScreen() {
         <section className="section today">
           <h2 className="label">Dziś</h2>
           <p className="today-plan">{today.name}</p>
+          {today.note && <p className="plan-note">{today.note}</p>}
           <p className="muted small">
             {plural(today.items.length, 'ćwiczenie', 'ćwiczenia', 'ćwiczeń')} ·{' '}
             {plural(
@@ -123,6 +127,7 @@ export function TrainingScreen() {
                     <span className="item-sub">
                       {plural(plan.items.length, 'ćwiczenie', 'ćwiczenia', 'ćwiczeń')}
                     </span>
+                    {plan.note && <span className="item-sub plan-note-line">{plan.note}</span>}
                   </span>
                   <span className="item-end">
                     <Icon name="forward" />

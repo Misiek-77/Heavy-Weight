@@ -1,9 +1,13 @@
 import { useRef, useState } from 'react';
-import { parseBackup, serializeBackup, serializeCombined } from '../data/backup';
+import { parseBackup, serializeBackup } from '../data/backup';
+import { COMBINED_APP } from '../shared/otherApp';
 import { historyCsv } from '../data/csv';
 import { importHistoryCsv } from '../data/importCsv';
 import type { AppData } from '../domain/types';
 import { useStore } from '../state/store';
+import { parseBackup as parseDietBackup, serializeBackup as serializeDiet } from '../nutrition/data/backup';
+import type { NutritionData } from '../nutrition/domain/types';
+import { useNutrition } from '../nutrition/state/nutritionContext';
 import { WEIGHT_UNITS, type WeightUnit } from '../domain/types';
 import { getTheme, setTheme, useSystemDark, type Theme } from '../state/theme';
 import { Header } from '../ui/Chrome';
@@ -20,11 +24,11 @@ type Message = { kind: 'ok' | 'error'; text: string } | null;
 
 export function SettingsScreen() {
   const store = useStore();
+  const diet = useNutrition();
   const systemDark = useSystemDark();
   const [theme, setThemeState] = useState<Theme>(getTheme);
-  const [pending, setPending] = useState<AppData | null>(null);
-  /** The file being imported also holds the nutrition diary, which is restored in that app. */
-  const [pendingCombined, setPendingCombined] = useState(false);
+  /** What a backup file being imported would restore: workouts, the diet diary, or both (a full backup). */
+  const [pending, setPending] = useState<{ training?: AppData; diet?: NutritionData } | null>(null);
   const [message, setMessage] = useState<Message>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const csvInput = useRef<HTMLInputElement>(null);
@@ -48,20 +52,35 @@ export function SettingsScreen() {
     const { exercises, plans, workouts, measurements, goals, settings } = store;
     const now = new Date();
     const data = { exercises, plans, workouts, measurements, goals, settings };
-    const combined = both ? await serializeCombined(data, now.toISOString()) : null;
+    const at = now.toISOString();
+    const { products, entries, weights, water } = diet;
+    const text = both
+      ? JSON.stringify(
+          {
+            app: COMBINED_APP,
+            version: 1,
+            exportedAt: at,
+            trening: JSON.parse(serializeBackup(data, at)),
+            jadlospis: JSON.parse(serializeDiet({ products, entries, weights, water, settings: diet.settings }, at)),
+          },
+          null,
+          2,
+        )
+      : serializeBackup(data, at);
     const result = await saveFile(
-      new Blob([combined ? combined.text : serializeBackup(data, now.toISOString())], { type: 'application/json' }),
-      `${both ? 'trening-i-jadlospis' : 'trening'}-kopia-${now.toISOString().slice(0, 10)}.json`,
-      both ? 'Kopia zapasowa obu aplikacji' : 'Kopia zapasowa treningów',
+      new Blob([text], { type: 'application/json' }),
+      `${both ? 'trening-i-dieta' : 'trening'}-kopia-${now.toISOString().slice(0, 10)}.json`,
+      both ? 'Kopia zapasowa: treningi i dieta' : 'Kopia zapasowa treningów',
     );
     if (result === 'cancelled') return;
     // Remembered so the backup reminder knows the data is safe for a while.
     const { backupSnoozedUntil: _snooze, ...rest } = settings;
-    store.saveSettings({ ...rest, lastBackupAt: now.toISOString() });
+    store.saveSettings({ ...rest, lastBackupAt: at });
+    if (both) diet.saveSettings({ ...diet.settings, lastBackupAt: at });
     const done = result === 'shared' ? 'Kopia zapasowa została zapisana.' : 'Kopia zapasowa została pobrana.';
     setMessage({
       kind: 'ok',
-      text: combined && !combined.withNutrition ? `${done} Danych Jadłospisu nie widać z tej aplikacji (nie był otwierany na tym urządzeniu albo iPhone trzyma dane obu aplikacji z ekranu początkowego osobno), więc w pliku są tylko treningi.` : done,
+      text: done,
     });
   }
 
@@ -77,24 +96,26 @@ export function SettingsScreen() {
 
   async function readFile(file: File | undefined) {
     if (!file) return;
-    const result = parseBackup(await file.text());
-    if (result.ok) {
+    const text = await file.text();
+    const result = parseBackup(text);
+    // A full backup restores the diet too; a diet-only backup (also from the old Jadłospis app) only the diet.
+    const dietResult = !result.ok || result.combined?.withNutrition ? parseDietBackup(text) : null;
+    const dietData = dietResult?.ok ? dietResult.data : undefined;
+    if (result.ok || dietData) {
       setMessage(null);
-      setPendingCombined(!!result.combined?.withNutrition);
-      setPending(result.data);
+      setPending({ ...(result.ok ? { training: result.data } : {}), ...(dietData ? { diet: dietData } : {}) });
     } else {
-      setMessage({ kind: 'error', text: result.error });
+      setMessage({ kind: 'error', text: result.ok ? 'Nie udało się odczytać pliku.' : result.error });
     }
   }
 
-  async function importData(data: AppData) {
+  async function importData(data: { training?: AppData; diet?: NutritionData }) {
     try {
-      await store.replaceAll(data);
+      if (data.training) await store.replaceAll(data.training);
+      if (data.diet) await diet.replaceAll(data.diet);
       setMessage({
         kind: 'ok',
-        text: pendingCombined
-          ? 'Treningi zostały zaimportowane. Jadłospis z tego pliku wczytasz w aplikacji Jadłospis: Cele → Importuj.'
-          : 'Dane zostały zaimportowane.',
+        text: data.training && data.diet ? 'Treningi i dieta zostały zaimportowane.' : data.diet ? 'Dieta została zaimportowana.' : 'Dane zostały zaimportowane.',
       });
     } catch {
       setMessage({ kind: 'error', text: 'Nie udało się zapisać importowanych danych. Dotychczasowe dane są nienaruszone.' });
@@ -200,10 +221,10 @@ export function SettingsScreen() {
           </button>
         </div>
         <button type="button" className="btn btn-block" style={{ marginTop: 8 }} onClick={() => void exportData(true)}>
-          Eksportuj obie aplikacje (z Jadłospisem)
+          Eksportuj wszystko (treningi i dieta)
         </button>
         <p className="muted small" style={{ marginTop: 8 }}>
-          Jeden plik z treningami i jadłospisem z tego telefonu. Wczytany tutaj przywraca treningi, a wczytany w Jadłospisie — dziennik jedzenia.
+          Jeden plik z treningami i dietą. „Importuj” przywraca z niego wszystko. Wczytuje też kopię ze starej aplikacji Jadłospis.
         </p>
         <p className="muted small" style={{ margin: '16px 0 12px' }}>
           Historię treningów możesz też pobrać jako arkusz (CSV) do Excela lub Arkuszy Google. To tylko odczyt, nie
@@ -321,12 +342,16 @@ export function SettingsScreen() {
         title="Zastąpić dane?"
         message={
           pending
-            ? `Plik zawiera ${plural(pending.workouts.length, 'trening', 'treningi', 'treningów')} i ${plural(
-                pending.plans.length,
-                'plan',
-                'plany',
-                'planów',
-              )}. Import zastąpi wszystkie dane zapisane teraz w aplikacji.`
+            ? [
+                pending.training &&
+                  `${plural(pending.training.workouts.length, 'trening', 'treningi', 'treningów')} i ${plural(pending.training.plans.length, 'plan', 'plany', 'planów')}`,
+                pending.diet &&
+                  `${plural(pending.diet.entries.length, 'wpis', 'wpisy', 'wpisów')} diety i ${plural(pending.diet.products.length, 'produkt', 'produkty', 'produktów')}`,
+              ]
+                .filter(Boolean)
+                .join(', ')
+                .replace(/^/, 'Plik zawiera ') +
+              `. Import zastąpi ${pending.training && pending.diet ? 'wszystkie treningi i całą dietę' : pending.diet ? 'całą dietę' : 'wszystkie treningi'} zapisane teraz w aplikacji.`
             : ''
         }
         confirmLabel="Zastąp dane"

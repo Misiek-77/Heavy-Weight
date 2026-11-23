@@ -382,7 +382,7 @@ a {
 
 .tabbar nav {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   max-width: var(--column);
   height: var(--tabbar);
   margin: 0 auto;
@@ -1693,4 +1693,68 @@ button.set-index {
 .percent-table td,
 .percent-table th {
   padding: 8px 0;
+}
+
+/* ---------- interval timer ---------- */
+
+.interval {
+  text-align: center;
+}
+
+.interval-phase {
+  font-size: 20px;
+  font-weight: 650;
+}
+
+.interval-clock {
+  font-size: 88px;
+  font-weight: 700;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+
+.interval-round {
+  color: var(--muted);
+  margin-bottom: 14px;
+}
+
+.interval-bar {
+  display: block;
+  height: 10px;
+  margin-bottom: 10px;
+}
+
+/* Lime reads well on dark; on the light background the clock stays dark and the bar carries the colour. */
+.interval-work .interval-clock {
+  color: light-dark(var(--ink), var(--accent));
+}
+
+.interval-rest .bar-fill {
+  background: var(--muted);
+}
+
+/* ---------- plan note ---------- */
+
+.plan-note {
+  margin: 10px 0 4px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+  background: var(--field);
+  font-size: 14px;
+  white-space: pre-line;
+}
+
+.plan-note-line {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.plan-note-input {
+  min-height: 64px;
+  resize: vertical;
+  font: inherit;
+  padding-top: 10px;
 }

@@ -118,6 +118,7 @@ function PlanForm({ existing }: { existing?: Plan }) {
   const navigate = useNavigate();
   const [name, setName] = useState(existing?.name ?? '');
   const [items, setItems] = useState<PlanItem[]>(existing?.items ?? []);
+  const [note, setNote] = useState(existing?.note ?? '');
   const [dialog, setDialog] = useState<'picker' | 'delete' | null>(null);
 
   const patch = (index: number, change: Partial<PlanItem>) =>
@@ -140,7 +141,14 @@ function PlanForm({ existing }: { existing?: Plan }) {
         ...(linkNext && i < items.length - 1 ? { linkNext: true } : {}),
       };
     });
-    store.savePlan({ id: existing?.id ?? newId(), name: name.trim(), items: clean, createdAt: existing?.createdAt ?? now, updatedAt: now });
+    store.savePlan({
+      id: existing?.id ?? newId(),
+      name: name.trim(),
+      items: clean,
+      ...(note.trim() ? { note: note.trim() } : {}),
+      createdAt: existing?.createdAt ?? now,
+      updatedAt: now,
+    });
     navigate('/plany');
   }
 
@@ -166,6 +174,18 @@ function PlanForm({ existing }: { existing?: Plan }) {
             onChange={(e) => setName(e.target.value)}
           />
         </label>
+        <label className="field" style={{ marginTop: 12 }}>
+          <span>Notatka do planu (opcjonalnie)</span>
+          <textarea
+            className="input plan-note-input"
+            rows={2}
+            maxLength={500}
+            value={note}
+            placeholder="np. W tym tygodniu +2,5 kg do przysiadu, wyciskanie 3×5"
+            onChange={(e) => setNote(e.target.value)}
+          />
+        </label>
+        <p className="muted small" style={{ marginTop: 6 }}>Pokaże się przy starcie treningu z tego planu. Dobre miejsce na progresję na dany tydzień.</p>
       </div>
 
       <section className="section">

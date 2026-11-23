@@ -1,5 +1,9 @@
 # Trening
 
+Aplikacja łączy dziennik treningu siłowego i dietę (zakładka Dieta, kod w `src/nutrition`, dawniej osobna aplikacja
+Jadłospis). Dane są w dwóch bazach IndexedDB na tym samym adresie: `trening` i `jadlospis`. „Eksportuj wszystko” w
+Ustawieniach zapisuje oba w jednym pliku, a „Importuj” przywraca je oba (przyjmuje też kopię ze starego Jadłospisu).
+
 Dziennik treningu siłowego: plany, serie, przerwy, rekordy i postępy. Działa w przeglądarce i offline,
 a wszystkie dane zostają na urządzeniu.
 

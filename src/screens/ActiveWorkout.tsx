@@ -58,6 +58,7 @@ export function ActiveWorkout({ workout, onFinished }: { workout: Workout; onFin
   const store = useStore();
   const rest = useRestControls();
   useWakeLock(true);
+  const planNote = workout.planId ? store.plans.find((p) => p.id === workout.planId)?.note : undefined;
   const [dialog, setDialog] = useState<Dialog>(null);
   /** Exercise whose how-to sheet is open. */
   const [guideId, setGuideId] = useState<string | null>(null);
@@ -146,6 +147,11 @@ export function ActiveWorkout({ workout, onFinished }: { workout: Workout; onFin
         onBlur={() => workout.name.trim() === '' && save({ ...workout, name: 'Trening' })}
       />
       <Clock startedAt={workout.startedAt} />
+      {planNote && (
+        <p className="plan-note" role="note">
+          {planNote}
+        </p>
+      )}
       <NoteField
         label="Notatka do treningu"
         placeholder="Notatka do treningu"

@@ -14,24 +14,34 @@ export default defineConfig({
       includeAssets: ['icon-192.png', 'icon-512.png', 'apple-touch-icon.png'],
       // Illustrations are precached so the how-to works offline at the gym.
       workbox: {
-        globPatterns: ['**/*.{js,css,html,png,jpg}'],
+        globPatterns: ['**/*.{js,css,html,png,jpg,svg}'],
         // The largest file (a muscle chart or animation strip) is well under this; the default 2 MB is fine
         // today, but a bigger image must fail the build rather than silently miss the offline cache.
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
         // Old precaches from earlier versions are removed, so updates do not pile up on the phone.
         cleanupOutdatedCaches: true,
+        // The label reader's engine (worker script and WebAssembly core) comes from jsDelivr the first time a label
+        // is read, at fixed versions; kept here so reading works offline afterwards. The Polish model itself is
+        // cached by Tesseract in IndexedDB. Product data from Open Food Facts is never cached.
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/cdn\.jsdelivr\.net\/npm\/tesseract\.js(-core)?@/,
+            handler: 'CacheFirst',
+            options: { cacheName: 'tesseract-engine', expiration: { maxEntries: 10 }, cacheableResponse: { statuses: [0, 200] } },
+          },
+        ],
       },
       manifest: {
         name: 'Trening',
         short_name: 'Trening',
-        description: 'Dziennik treningu siłowego',
+        description: 'Dziennik treningu siłowego i diety',
         lang: 'pl',
         display: 'standalone',
         id: './',
         start_url: '.',
         scope: '.',
         orientation: 'portrait',
-        categories: ['health', 'fitness', 'sports'],
+        categories: ['health', 'fitness', 'sports', 'food'],
         background_color: '#0e0e0e',
         theme_color: '#0e0e0e',
         icons: [

@@ -35,14 +35,18 @@ export function useRestTimer(): RestTimer {
   return { ...useRestControls(), ...useContext(CountdownContext) };
 }
 
-/** Two short beeps. Needs an AudioContext unlocked by an earlier tap, which starting a rest provides. */
-function beep(audio: AudioContext) {
+/**
+ * Short beeps (two by default). Needs an AudioContext unlocked by an earlier tap, which starting a rest or the
+ * interval timer provides.
+ */
+export function beep(audio: AudioContext, times = 2, frequency = 880) {
   // Browsers suspend an idle context; scheduling on a suspended one plays nothing.
   void audio.resume();
-  for (const at of [0, 0.22]) {
+  for (let i = 0; i < times; i++) {
+    const at = i * 0.22;
     const osc = audio.createOscillator();
     const gain = audio.createGain();
-    osc.frequency.value = 880;
+    osc.frequency.value = frequency;
     const t = audio.currentTime + at;
     gain.gain.setValueAtTime(0.0001, t);
     gain.gain.exponentialRampToValueAtTime(0.25, t + 0.02);
