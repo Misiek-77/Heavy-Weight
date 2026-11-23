@@ -1,45 +1,23 @@
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import { dayKey } from '../../shared/date';
-import { readDatabase } from '../../shared/otherApp';
+import { useStore } from '../../state/store';
 import type { WeightPoint } from '../domain/weight';
 
-/** What the diary takes from the training app on this device: workout days and body weight readings. */
+/** What the diet takes from the training part of the app: workout days and body weight readings. */
 export interface TrainingLink {
   /** Days with a workout, "2026-11-21". */
   workoutDays: Set<string>;
   weights: WeightPoint[];
 }
 
-const EMPTY: TrainingLink = { workoutDays: new Set(), weights: [] };
-
-export async function readTrainingLink(): Promise<TrainingLink> {
-  const db = await readDatabase('trening', ['workouts', 'measurements']);
-  if (!db) return EMPTY;
-  const workoutDays = new Set<string>();
-  for (const w of (db.workouts ?? []) as { startedAt?: unknown }[]) {
-    if (typeof w.startedAt === 'string') workoutDays.add(dayKey(new Date(w.startedAt)));
-  }
-  const weights: WeightPoint[] = [];
-  for (const m of (db.measurements ?? []) as { date?: unknown; values?: { weight?: unknown }; updatedAt?: unknown }[]) {
-    const kg = m.values?.weight;
-    if (typeof m.date === 'string' && typeof kg === 'number' && kg > 0) weights.push({ date: m.date, kg, updatedAt: typeof m.updatedAt === 'string' ? m.updatedAt : '' });
-  }
-  return { workoutDays, weights };
-}
-
-/** The training app's data, read again whenever the diary comes back to the foreground. */
+/** Live from the training store, so a workout started a moment ago already counts. */
 export function useTrainingLink(): TrainingLink {
-  const [link, setLink] = useState(EMPTY);
-  useEffect(() => {
-    let alive = true;
-    const load = () => void readTrainingLink().then((l) => alive && setLink(l), () => undefined);
-    load();
-    const onShow = () => document.visibilityState === 'visible' && load();
-    document.addEventListener('visibilitychange', onShow);
-    return () => {
-      alive = false;
-      document.removeEventListener('visibilitychange', onShow);
-    };
-  }, []);
-  return link;
+  const { workouts, measurements } = useStore();
+  return useMemo(() => {
+    const workoutDays = new Set(workouts.map((w) => dayKey(new Date(w.startedAt))));
+    const weights: WeightPoint[] = measurements
+      .filter((m) => m.values.weight !== undefined && m.values.weight > 0)
+      .map((m) => ({ date: m.date, kg: m.values.weight!, updatedAt: m.updatedAt }));
+    return { workoutDays, weights };
+  }, [workouts, measurements]);
 }

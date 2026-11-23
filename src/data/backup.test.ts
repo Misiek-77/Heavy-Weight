@@ -121,7 +121,7 @@ describe('a backup holding both apps', () => {
     const empty = parseBackup(JSON.stringify({ app: 'komplet', version: 1, trening: null, jadlospis: {} }));
     expect(empty.ok === false && empty.error).toMatch(/Treningu/);
     const diary = parseBackup(JSON.stringify({ app: 'jadlospis', version: 1, data: {} }));
-    expect(diary.ok === false && diary.error).toMatch(/Jadłospis/);
+    expect(diary.ok === false && diary.error).toMatch(/diety/);
   });
 });
 

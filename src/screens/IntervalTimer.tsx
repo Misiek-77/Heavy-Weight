@@ -50,6 +50,9 @@ export function IntervalTimerScreen() {
 
   useWakeLock(running);
 
+  // Browsers allow only a few sound contexts per page: close this one when leaving the screen.
+  useEffect(() => () => void audio.current?.close().catch(() => undefined), []);
+
   useEffect(() => {
     if (!running) return;
     const id = setInterval(() => setNow(Date.now()), 200);

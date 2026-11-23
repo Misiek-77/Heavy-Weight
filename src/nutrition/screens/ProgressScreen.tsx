@@ -156,7 +156,7 @@ function WeightSection({ today, fromTraining }: { today: string; fromTraining: W
         </button>
       </form>
       <p className="muted small" style={{ marginTop: 6 }}>
-        Najlepiej rano, na czczo. Waga zapisana w Treningu też się tu liczy.
+        Najlepiej rano, na czczo. Waga z pomiarów ciała w Postępach treningu też się tu liczy.
       </p>
 
       <div className="chips" role="group" aria-label="Cel" style={{ marginTop: 12 }}>
@@ -195,7 +195,7 @@ function WeightSection({ today, fromTraining }: { today: string; fromTraining: W
                         <span className="item-title">{formatGrams(p.kg)} kg</span>
                         <span className="item-sub">
                           {formatShortDay(p.date)}
-                          {!own && ' · z Treningu'}
+                          {!own && ' · z pomiarów ciała'}
                         </span>
                       </span>
                       {own && (

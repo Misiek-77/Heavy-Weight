@@ -49,9 +49,8 @@ export function AddScreen() {
   const onlineResult = online && online.query === query.trim() ? online.state : null;
 
   function pickBasic(food: BasicFood) {
-    const product: Product = { id: newId(), name: food.name, per100: food.per100, portions: food.portions, source: 'basic', updatedAt: new Date().toISOString() };
-    store.saveProduct(product);
-    setPicked(product);
+    // Saved among the person's products only once something is actually logged with it.
+    setPicked({ id: newId(), name: food.name, per100: food.per100, portions: food.portions, source: 'basic', updatedAt: new Date().toISOString() });
   }
 
   async function searchOnline() {
@@ -246,6 +245,7 @@ export function AddScreen() {
             product={picked}
             submitLabel={`Dodaj do: ${MEAL_LABEL[meal].toLowerCase()}`}
             onSubmit={(grams) => {
+              if (!store.products.some((p) => p.id === picked.id)) store.saveProduct(picked);
               store.saveEntry({
                 id: newId(),
                 date,

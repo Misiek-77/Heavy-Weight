@@ -102,7 +102,12 @@ export function SettingsScreen() {
     const dietResult = !result.ok || result.combined?.withNutrition ? parseDietBackup(text) : null;
     const dietData = dietResult?.ok ? dietResult.data : undefined;
     if (result.ok || dietData) {
-      setMessage(null);
+      // A full backup whose diet part cannot be read: the workouts are still offered, with a word about it.
+      setMessage(
+        result.ok && result.combined?.withNutrition && !dietData && dietResult && !dietResult.ok
+          ? { kind: 'error', text: `Część z dietą jest uszkodzona i nie zostanie zaimportowana: ${dietResult.error}` }
+          : null,
+      );
       setPending({ ...(result.ok ? { training: result.data } : {}), ...(dietData ? { diet: dietData } : {}) });
     } else {
       setMessage({ kind: 'error', text: result.ok ? 'Nie udało się odczytać pliku.' : result.error });
@@ -110,15 +115,25 @@ export function SettingsScreen() {
   }
 
   async function importData(data: { training?: AppData; diet?: NutritionData }) {
+    // Each part is replaced in one step of its own, so a failure leaves that part as it was.
+    let trainingDone = false;
     try {
-      if (data.training) await store.replaceAll(data.training);
+      if (data.training) {
+        await store.replaceAll(data.training);
+        trainingDone = true;
+      }
       if (data.diet) await diet.replaceAll(data.diet);
       setMessage({
         kind: 'ok',
         text: data.training && data.diet ? 'Treningi i dieta zostały zaimportowane.' : data.diet ? 'Dieta została zaimportowana.' : 'Dane zostały zaimportowane.',
       });
     } catch {
-      setMessage({ kind: 'error', text: 'Nie udało się zapisać importowanych danych. Dotychczasowe dane są nienaruszone.' });
+      setMessage({
+        kind: 'error',
+        text: trainingDone
+          ? 'Treningi zostały zaimportowane, ale diety nie udało się zapisać. Dotychczasowa dieta jest nienaruszona.'
+          : 'Nie udało się zapisać importowanych danych. Dotychczasowe dane są nienaruszone.',
+      });
     }
   }
 

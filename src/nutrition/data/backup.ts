@@ -1,4 +1,4 @@
-import { COMBINED_APP, readDatabase } from '../../shared/otherApp';
+import { COMBINED_APP } from '../../shared/otherApp';
 import {
   DEFAULT_SETTINGS,
   MEALS,
@@ -21,32 +21,6 @@ const backupObject = (data: NutritionData, now: string) => ({ app: BACKUP_APP, v
 
 export function serializeBackup(data: NutritionData, now: string): string {
   return JSON.stringify(backupObject(data, now), null, 2);
-}
-
-/** What the training app fills in for settings it never saved; its own backup check needs them. */
-const TRAINING_DEFAULTS = { restSeconds: 90, restSound: true, schedule: [null, null, null, null, null, null, null], unit: 'kg' };
-
-/**
- * One file with both apps: this diary, and the training app's data read from its database on this device
- * (left out when the training app was never opened here). Each app restores its own part of the file.
- */
-export async function serializeCombined(data: NutritionData, now: string): Promise<{ text: string; withTraining: boolean }> {
-  const t = await readDatabase('trening', ['exercises', 'plans', 'workouts', 'measurements', 'goals', 'settings']);
-  const training = t && {
-    app: 'trening',
-    version: 1,
-    exportedAt: now,
-    data: {
-      exercises: t.exercises ?? [],
-      plans: t.plans ?? [],
-      workouts: t.workouts ?? [],
-      measurements: t.measurements ?? [],
-      goals: t.goals ?? [],
-      settings: { ...TRAINING_DEFAULTS, ...(t.settings?.[0] as object | undefined) },
-    },
-  };
-  const text = JSON.stringify({ app: COMBINED_APP, version: 1, exportedAt: now, trening: training, jadlospis: backupObject(data, now) }, null, 2);
-  return { text, withTraining: !!training };
 }
 
 export type BackupResult = { ok: true; data: NutritionData; combined?: { withTraining: boolean } } | { ok: false; error: string };
@@ -135,10 +109,10 @@ export function parseBackup(text: string): BackupResult {
     if (file.app === COMBINED_APP) {
       combined = { withTraining: isObject(file.trening) };
       file = file.jadlospis;
-      check(isObject(file), 'W tym pliku nie ma danych Jadłospisu.');
+      check(isObject(file), 'W tym pliku nie ma danych diety.');
     }
-    check(file.app !== 'trening', 'To kopia aplikacji Trening. Zaimportuj ją w tamtej aplikacji.');
-    check(file.app === BACKUP_APP, 'To nie jest plik kopii zapasowej Jadłospisu.');
+    check(file.app !== 'trening', 'To kopia treningów. Wczytaj ją w Ustawieniach (zakładka Trening, ikona w prawym górnym rogu).');
+    check(file.app === BACKUP_APP, 'To nie jest plik kopii zapasowej diety.');
     check(file.version === VERSION, 'Ta kopia pochodzi z nowszej wersji aplikacji.');
     const d = file.data;
     check(isObject(d) && Array.isArray(d.products) && Array.isArray(d.entries), 'Plik kopii zapasowej jest niekompletny.');

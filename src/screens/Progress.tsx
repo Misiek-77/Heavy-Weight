@@ -13,7 +13,7 @@ import { LineChart } from '../ui/LineChart';
 import { MEASURE_INFO } from '../ui/measures';
 import { NumberField } from '../ui/NumberField';
 import { useToday } from '../ui/useToday';
-import { useNutritionWeights } from '../data/nutritionLink';
+import { useNutrition } from '../nutrition/state/nutritionContext';
 import { Confirm, Sheet } from '../ui/Sheet';
 
 const monthTitle = new Intl.DateTimeFormat('pl-PL', { month: 'long', year: 'numeric' });
@@ -242,8 +242,8 @@ function BodyMeasurements({ now }: { now: Date }) {
   const sorted = useMemo(() => [...store.measurements].sort((a, b) => a.date.localeCompare(b.date)), [store.measurements]);
   const shown = (m: Measure, value: number) => (m === 'weight' ? toUnit(value) : value);
   const unitOf = (m: Measure) => (m === 'weight' ? weightUnit() : MEASURE_INFO[m].unit);
-  const fromDiary = useNutritionWeights();
-  // Weight logged in Jadłospis counts too: one reading a day, the most recently changed one winning.
+  const fromDiary = useNutrition().weights;
+  // Weight logged in the diet counts too: one reading a day, the most recently changed one winning.
   const merged = useMemo(() => {
     if (measure !== 'weight') return null;
     const byDay = new Map<string, { kg: number; at: string; diary: boolean }>();
@@ -290,7 +290,7 @@ function BodyMeasurements({ now }: { now: Date }) {
             <span />
           </div>
           {points.length > 1 && <LineChart points={points} unit={unit} />}
-          {fromDiaryShown && <p className="muted small">Razem z wagą zapisaną w Jadłospisie.</p>}
+          {fromDiaryShown && <p className="muted small">Razem z wagą zapisaną w Diecie.</p>}
         </>
       ) : (
         <p className="empty">Brak pomiarów: {label.toLowerCase()}.</p>

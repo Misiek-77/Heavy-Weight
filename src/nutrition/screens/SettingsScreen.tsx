@@ -5,7 +5,7 @@ import { NumberField } from '../../shared/NumberField';
 import { saveFile } from '../../shared/saveFile';
 import { Confirm } from '../../shared/Sheet';
 import { getTheme, setTheme, useSystemDark, type Theme } from '../../shared/theme';
-import { parseBackup, serializeBackup, serializeCombined } from '../data/backup';
+import { parseBackup, serializeBackup } from '../data/backup';
 import { diaryCsv } from '../data/csv';
 import { goalsFromWeight } from '../domain/nutrients';
 import type { Goals, NutritionData } from '../domain/types';
@@ -31,23 +31,17 @@ export function SettingsScreen() {
   const changed =
     JSON.stringify(goals) !== JSON.stringify(store.settings.goals) || waterGoal !== store.settings.waterGoalMl || bonus !== store.settings.trainingBonusKcal;
 
-  async function exportData(both: boolean) {
+  async function exportData() {
     const now = new Date().toISOString();
     const { products, entries, weights, water, settings } = store;
-    const data = { products, entries, weights, water, settings };
-    const combined = both ? await serializeCombined(data, now) : null;
     const result = await saveFile(
-      new Blob([combined ? combined.text : serializeBackup(data, now)], { type: 'application/json' }),
-      `${both ? 'trening-i-jadlospis' : 'jadlospis'}-kopia-${now.slice(0, 10)}.json`,
-      both ? 'Kopia zapasowa obu aplikacji' : 'Kopia zapasowa jadłospisu',
+      new Blob([serializeBackup({ products, entries, weights, water, settings }, now)], { type: 'application/json' }),
+      `dieta-kopia-${now.slice(0, 10)}.json`,
+      'Kopia zapasowa diety',
     );
     if (result === 'cancelled') return;
     store.saveSettings({ ...store.settings, lastBackupAt: now });
-    const done = result === 'shared' ? 'Kopia zapasowa została zapisana.' : 'Kopia zapasowa została pobrana.';
-    setMessage({
-      kind: 'ok',
-      text: combined && !combined.withTraining ? `${done} Danych Treningu nie widać z tej aplikacji (nie był otwierany na tym urządzeniu albo iPhone trzyma dane obu aplikacji z ekranu początkowego osobno), więc w pliku jest tylko jadłospis.` : done,
-    });
+    setMessage({ kind: 'ok', text: result === 'shared' ? 'Kopia zapasowa została zapisana.' : 'Kopia zapasowa została pobrana.' });
   }
 
   return (
@@ -100,7 +94,7 @@ export function SettingsScreen() {
           <NumberField integer label="Dodatkowe kalorie w dni treningowe" value={bonus} onChange={setBonus} />
         </label>
         <p className="muted small">
-          Gdy w aplikacji Trening na tym telefonie jest zapisany trening danego dnia, cel kalorii rośnie o tyle, a dodatek idzie w węglowodany. 0 wyłącza
+          Gdy danego dnia jest zapisany trening, cel kalorii rośnie o tyle, a dodatek idzie w węglowodany. 0 wyłącza
           dodatek. Zwykle 200–400 kcal.
         </p>
         <h2 className="label">Woda</h2>
@@ -152,7 +146,7 @@ export function SettingsScreen() {
           Drive.
         </p>
         <div className="row-actions">
-          <button type="button" className="btn" onClick={() => void exportData(false)}>
+          <button type="button" className="btn" onClick={() => void exportData()}>
             Eksportuj
           </button>
           <button type="button" className="btn" onClick={() => fileInput.current?.click()}>

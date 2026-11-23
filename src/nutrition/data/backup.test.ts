@@ -46,6 +46,6 @@ describe('nutrition backup', () => {
     const both = parseBackup(JSON.stringify({ app: 'komplet', version: 1, trening: { app: 'trening', data: {} }, jadlospis: own }));
     expect(both).toEqual({ ok: true, data, combined: { withTraining: true } });
     const none = parseBackup(JSON.stringify({ app: 'komplet', version: 1, trening: null, jadlospis: null }));
-    expect(none.ok === false && none.error).toMatch(/Jadłospisu/);
+    expect(none.ok === false && none.error).toMatch(/diety/);
   });
 });

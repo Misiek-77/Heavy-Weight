@@ -13,7 +13,7 @@ import {
   type WorkoutSet,
 } from '../domain/types';
 
-import { COMBINED_APP, readDatabase } from './otherApp';
+import { COMBINED_APP } from '../shared/otherApp';
 
 const APP = 'trening';
 const VERSION = 1;
@@ -22,22 +22,6 @@ const backupObject = (data: AppData, now: string) => ({ app: APP, version: VERSI
 
 export function serializeBackup(data: AppData, now: string): string {
   return JSON.stringify(backupObject(data, now), null, 2);
-}
-
-/**
- * One file with both apps: these workouts, and the nutrition diary read from its database on this device (left
- * out when Jadłospis was never opened here). Each app restores its own part of the file.
- */
-export async function serializeCombined(data: AppData, now: string): Promise<{ text: string; withNutrition: boolean }> {
-  const n = await readDatabase('jadlospis', ['products', 'entries', 'weights', 'water', 'settings']);
-  const nutrition = n && {
-    app: 'jadlospis',
-    version: 1,
-    exportedAt: now,
-    data: { products: n.products ?? [], entries: n.entries ?? [], weights: n.weights ?? [], water: n.water ?? [], ...(n.settings?.[0] ? { settings: n.settings[0] } : {}) },
-  };
-  const text = JSON.stringify({ app: COMBINED_APP, version: 1, exportedAt: now, trening: backupObject(data, now), jadlospis: nutrition }, null, 2);
-  return { text, withNutrition: !!nutrition };
 }
 
 export type BackupResult = { ok: true; data: AppData; combined?: { withNutrition: boolean } } | { ok: false; error: string };
@@ -176,7 +160,7 @@ export function parseBackup(text: string): BackupResult {
       file = file.trening;
       check(isObject(file), 'W tym pliku nie ma danych Treningu.');
     }
-    check(isObject(file) && file.app !== 'jadlospis', 'To kopia aplikacji Jadłospis. Zaimportuj ją w tamtej aplikacji.');
+    check(isObject(file) && file.app !== 'jadlospis', 'To kopia samej diety. Wczytaj ją w zakładce Dieta → Cele → Importuj.');
     check(isObject(file) && file.app === APP, 'To nie jest plik kopii zapasowej tej aplikacji.');
     check(file.version === VERSION, 'Ta kopia pochodzi z nowszej wersji aplikacji.');
     const d = file.data;
